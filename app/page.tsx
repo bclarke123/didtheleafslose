@@ -74,7 +74,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
       <h1
-        className={`text-[12rem] sm:text-[16rem] md:text-[20rem] font-black leading-none ${
+        className={`text-[6rem] sm:text-[12rem] md:text-[20rem] font-black leading-none ${
           didLose ? "text-red-600" : "text-green-600"
         }`}
       >
