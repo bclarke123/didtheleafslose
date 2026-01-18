@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdBanner } from "./AdBanner";
 
 interface Game {
   id: number;
@@ -223,10 +224,15 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
+      <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-2.5">
         <header className="sr-only">
           <h1>Did the Toronto Maple Leafs Lose Their Latest Game?</h1>
         </header>
+
+        {/* Ad Slot 1: Top of page */}
+        <div className="mb-16 w-full max-w-3xl" aria-label="Advertisement">
+          <AdBanner />
+        </div>
 
         <article aria-label="Toronto Maple Leafs Game Result">
           <p
@@ -307,7 +313,12 @@ export default async function Home() {
           </details>
         )}
 
-        <footer className="mt-16 text-center text-sm text-gray-400 max-w-md">
+        {/* Ad Slot 2: Bottom of page */}
+        <div className="mt-12 w-full max-w-3xl" aria-label="Advertisement">
+          <AdBanner />
+        </div>
+
+        <footer className="mt-8 text-center text-sm text-gray-400 max-w-md">
           <p>
             Latest Toronto Maple Leafs score and game results. Updated automatically
             after every Leafs game.
