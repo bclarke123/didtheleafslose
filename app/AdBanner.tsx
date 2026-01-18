@@ -39,8 +39,8 @@ export function AdBanner({ size = "small" }: AdBannerProps) {
       className="adsbygoogle"
       style={{ display: "block" }}
       data-ad-client="ca-pub-1129288606167385"
-      data-ad-slot="auto"
-      data-ad-format="horizontal"
+      data-ad-slot="1549061328"
+      data-ad-format="auto"
       data-full-width-responsive="true"
     />
   );
