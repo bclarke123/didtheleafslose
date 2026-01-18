@@ -19,8 +19,8 @@ export function AdBanner() {
 
   return (
     <ins
-      className="adsbygoogle"
-      style={{ display: "block", height: 90, maxWidth: 728 }}
+      className="adsbygoogle h-[50px] sm:h-[90px]"
+      style={{ display: "block" }}
       data-ad-client="ca-pub-1129288606167385"
       data-ad-slot="auto"
       data-ad-format="horizontal"
