@@ -1,7 +1,8 @@
-import { schedule } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
+import type { Config } from "@netlify/functions";
 
-const BUILD_HOOK_URL = "https://api.netlify.com/build_hooks/696d468b71a04ae195f79a56";
+const BUILD_HOOK_URL =
+  "https://api.netlify.com/build_hooks/696d468b71a04ae195f79a56";
 
 interface Game {
   id: number;
@@ -46,7 +47,7 @@ async function triggerRebuild(): Promise<void> {
   }
 }
 
-export const handler = schedule("* * * * *", async () => {
+export default async () => {
   console.log("Checking for new game results...");
 
   const store = getStore("game-state");
@@ -68,4 +69,8 @@ export const handler = schedule("* * * * *", async () => {
   }
 
   return { statusCode: 200 };
-});
+};
+
+export const config: Config = {
+  schedule: "* * * * *"
+};
