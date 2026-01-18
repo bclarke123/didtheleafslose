@@ -245,6 +245,12 @@ export default async function Home() {
             {didLose ? "YES" : "NO"}
           </p>
 
+          <p className="text-lg sm:text-xl text-gray-500 text-center mt-4">
+            {didLose
+              ? "They lost. Do you feel better about yourself?"
+              : "They won, you hater"}
+          </p>
+
           <div className="mt-8 text-center">
             <h2 className="text-2xl sm:text-3xl text-gray-700">
               {isLeafsHome ? "vs" : "@"} {opponent}
