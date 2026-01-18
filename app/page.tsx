@@ -21,6 +21,42 @@ interface ScheduleResponse {
   games: Game[];
 }
 
+interface GoalAssist {
+  playerId: number;
+  firstName: { default: string };
+  lastName: { default: string };
+  sweaterNumber: number;
+}
+
+interface Goal {
+  playerId: number;
+  firstName: { default: string };
+  lastName: { default: string };
+  teamAbbrev: { default: string };
+  timeInPeriod: string;
+  shotType: string;
+  strength: string;
+  assists: GoalAssist[];
+  awayScore: number;
+  homeScore: number;
+  headshot: string;
+  highlightClipSharingUrl?: string;
+}
+
+interface ScoringPeriod {
+  periodDescriptor: {
+    number: number;
+    periodType: string;
+  };
+  goals: Goal[];
+}
+
+interface GameLanding {
+  summary: {
+    scoring: ScoringPeriod[];
+  };
+}
+
 async function getLatestLeafsGame() {
   const res = await fetch(
     "https://api-web.nhle.com/v1/club-schedule-season/TOR/now",
@@ -45,6 +81,32 @@ async function getLatestLeafsGame() {
   // Get the most recent completed game
   const latestGame = completedGames[completedGames.length - 1];
   return latestGame;
+}
+
+async function getGameScoring(gameId: number): Promise<ScoringPeriod[]> {
+  const res = await fetch(
+    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`,
+    { next: { revalidate: 300 } }
+  );
+
+  if (!res.ok) {
+    return [];
+  }
+
+  const data: GameLanding = await res.json();
+  return data.summary?.scoring ?? [];
+}
+
+function getPeriodLabel(period: ScoringPeriod): string {
+  const { number, periodType } = period.periodDescriptor;
+  if (periodType === "OT") return "OT";
+  if (periodType === "SO") return "SO";
+  return `P${number}`;
+}
+
+function formatAssists(assists: GoalAssist[]): string {
+  if (assists.length === 0) return "Unassisted";
+  return assists.map((a) => `${a.firstName.default} ${a.lastName.default}`).join(", ");
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -92,6 +154,8 @@ export default async function Home() {
       </main>
     );
   }
+
+  const scoring = await getGameScoring(game.id);
 
   const isLeafsHome = game.homeTeam.abbrev === "TOR";
   const leafsScore = isLeafsHome ? game.homeTeam.score : game.awayTeam.score;
@@ -188,6 +252,60 @@ export default async function Home() {
             </time>
           </div>
         </article>
+
+        {scoring.length > 0 && (
+          <details className="mt-12 w-full max-w-lg">
+            <summary className="cursor-pointer text-center text-gray-500 hover:text-gray-700 font-medium py-2">
+              Scoring Summary
+            </summary>
+            <div className="mt-4 space-y-4">
+              {scoring.map((period) => {
+                if (period.goals.length === 0) return null;
+                return (
+                  <div key={period.periodDescriptor.number} className="border-t border-gray-200 pt-4">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      {getPeriodLabel(period)}
+                    </h3>
+                    <ul className="space-y-3">
+                      {period.goals.map((goal, idx) => {
+                        const isLeafsGoal = goal.teamAbbrev.default === "TOR";
+                        return (
+                          <li key={idx} className="flex items-start gap-3">
+                            <span className="text-sm text-gray-400 font-mono w-12 shrink-0">
+                              {goal.timeInPeriod}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                                    isLeafsGoal
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {goal.teamAbbrev.default}
+                                </span>
+                                <span className="font-semibold text-gray-900">
+                                  {goal.firstName.default} {goal.lastName.default}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  ({goal.awayScore}-{goal.homeScore})
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                {formatAssists(goal.assists)}
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
 
         <footer className="mt-16 text-center text-sm text-gray-400 max-w-md">
           <p>
