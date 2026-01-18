@@ -315,7 +315,7 @@ export default async function Home() {
 
         {/* Ad Slot 2: Bottom of page */}
         <div className="mt-12 w-full max-w-3xl" aria-label="Advertisement">
-          <AdBanner />
+          <AdBanner size="large" />
         </div>
 
         <footer className="mt-8 text-center text-sm text-gray-400 max-w-md">
