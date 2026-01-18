@@ -35,15 +35,13 @@ export function AdBanner({ size = "small" }: AdBannerProps) {
   }
 
   return (
-    <div className="h-[50px] sm:h-[90px] overflow-hidden">
-      <ins
-        className="adsbygoogle"
-        style={{ display: "block", width: "100%", height: "100%" }}
-        data-ad-client="ca-pub-1129288606167385"
-        data-ad-slot="auto"
-        data-ad-format="horizontal"
-        data-full-width-responsive="true"
-      />
-    </div>
+    <ins
+      className="adsbygoogle"
+      style={{ display: "block" }}
+      data-ad-client="ca-pub-1129288606167385"
+      data-ad-slot="auto"
+      data-ad-format="horizontal"
+      data-full-width-responsive="true"
+    />
   );
 }
