@@ -58,10 +58,12 @@ interface GameLanding {
   };
 }
 
+// Force static generation - page rebuilds are triggered by scheduled function
+export const dynamic = "force-static";
+
 async function getLatestLeafsGame() {
   const res = await fetch(
-    "https://api-web.nhle.com/v1/club-schedule-season/TOR/now",
-    { next: { revalidate: 300 } } // Revalidate every 5 minutes
+    "https://api-web.nhle.com/v1/club-schedule-season/TOR/now"
   );
 
   if (!res.ok) {
@@ -86,8 +88,7 @@ async function getLatestLeafsGame() {
 
 async function getGameScoring(gameId: number): Promise<ScoringPeriod[]> {
   const res = await fetch(
-    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`,
-    { next: { revalidate: 300 } }
+    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`
   );
 
   if (!res.ok) {
