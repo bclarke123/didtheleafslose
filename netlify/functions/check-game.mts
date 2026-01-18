@@ -67,8 +67,6 @@ export default async () => {
   } else {
     console.log("No new games");
   }
-
-  return { statusCode: 200 };
 };
 
 export const config: Config = {
