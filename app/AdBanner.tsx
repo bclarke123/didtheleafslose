@@ -20,10 +20,10 @@ export function AdBanner() {
   return (
     <ins
       className="adsbygoogle"
-      style={{ display: "block" }}
+      style={{ display: "block", height: 90, maxWidth: 728 }}
       data-ad-client="ca-pub-1129288606167385"
       data-ad-slot="auto"
-      data-ad-format="auto"
+      data-ad-format="horizontal"
       data-full-width-responsive="true"
     />
   );
