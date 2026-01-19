@@ -61,7 +61,7 @@ interface GameLanding {
 // Force static generation - page rebuilds are triggered by scheduled function
 export const dynamic = "force-static";
 
-async function getLatestLeafsGame() {
+async function getLeafsGames() {
   const res = await fetch(
     "https://api-web.nhle.com/v1/club-schedule-season/TOR/now"
   );
@@ -77,13 +77,20 @@ async function getLatestLeafsGame() {
     (game) => game.gameState === "OFF" || game.gameState === "FINAL"
   );
 
-  if (completedGames.length === 0) {
-    return null;
-  }
+  // Find the next upcoming game (gameState "FUT")
+  const upcomingGames = data.games.filter(
+    (game) => game.gameState === "FUT"
+  );
 
-  // Get the most recent completed game
-  const latestGame = completedGames[completedGames.length - 1];
-  return latestGame;
+  const latestGame = completedGames.length > 0
+    ? completedGames[completedGames.length - 1]
+    : null;
+
+  const nextGame = upcomingGames.length > 0
+    ? upcomingGames[0]
+    : null;
+
+  return { latestGame, nextGame };
 }
 
 async function getGameScoring(gameId: number): Promise<ScoringPeriod[]> {
@@ -112,7 +119,7 @@ function formatAssists(assists: GoalAssist[]): string {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const game = await getLatestLeafsGame();
+  const { latestGame: game } = await getLeafsGames();
 
   if (!game) {
     return {};
@@ -145,7 +152,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const game = await getLatestLeafsGame();
+  const { latestGame: game, nextGame } = await getLeafsGames();
 
   if (!game) {
     return (
@@ -168,11 +175,15 @@ export default async function Home() {
 
   const didLose = (leafsScore ?? 0) < (opponentScore ?? 0);
 
-  const gameDate = new Date(game.gameDate).toLocaleDateString("en-US", {
+  const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+
+  // Estimate end date as 3 hours after game start
+  const startDateTime = new Date(game.gameDate + "T12:00:00");
+  const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -180,9 +191,27 @@ export default async function Home() {
     name: `Toronto Maple Leafs vs ${opponent}`,
     description: `NHL game: Toronto Maple Leafs ${didLose ? "lost" : "won"} against ${opponent} with a final score of ${leafsScore}-${opponentScore}`,
     startDate: game.gameDate,
+    endDate: endDateTime.toISOString(),
+    eventStatus: "https://schema.org/EventScheduled",
+    image: "https://assets.nhle.com/logos/nhl/svg/TOR_light.svg",
     location: {
       "@type": "Place",
       name: isLeafsHome ? "Scotiabank Arena" : `${opponent} Arena`,
+      ...(isLeafsHome && {
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "40 Bay Street",
+          addressLocality: "Toronto",
+          addressRegion: "ON",
+          postalCode: "M5J 2X2",
+          addressCountry: "CA",
+        },
+      }),
+    },
+    organizer: {
+      "@type": "Organization",
+      name: "National Hockey League",
+      url: "https://www.nhl.com",
     },
     homeTeam: {
       "@type": "SportsTeam",
@@ -319,6 +348,31 @@ export default async function Home() {
             </div>
           </details>
         )}
+
+        {nextGame && (() => {
+          const nextIsHome = nextGame.homeTeam.abbrev === "TOR";
+          const nextOpponent = nextIsHome
+            ? nextGame.awayTeam.placeName.default
+            : nextGame.homeTeam.placeName.default;
+          const nextGameDate = new Date(nextGame.gameDate + "T12:00:00").toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          });
+          return (
+            <section className="mt-12 text-center" aria-label="Next Game">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Next Game
+              </h2>
+              <p className="text-xl sm:text-2xl text-gray-700">
+                {nextIsHome ? "vs" : "@"} {nextOpponent}
+              </p>
+              <time dateTime={nextGame.gameDate} className="text-gray-500 mt-1 block">
+                {nextGameDate}
+              </time>
+            </section>
+          );
+        })()}
 
         {/* Ad Slot 2: Bottom of page */}
         <div className="mt-12 w-full max-w-3xl" aria-label="Advertisement">
