@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AdBanner } from "./AdBanner";
 import {
   type Game,
@@ -351,11 +352,14 @@ export default async function Home() {
           <AdBanner size="large" />
         </div>
 
-        <footer className="mt-8 text-center text-sm text-gray-400 max-w-md">
+        <footer className="mt-8 pb-16 text-center text-sm text-gray-400 max-w-md">
           <p>
             Latest Toronto Maple Leafs score and game results. Updated automatically
             after every Leafs game.
           </p>
+          <Link href="/archive" className="mt-4 block hover:text-gray-600">
+            Archive
+          </Link>
         </footer>
       </main>
     </>

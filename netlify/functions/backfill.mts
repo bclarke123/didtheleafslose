@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Config } from "@netlify/functions";
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 2;
 const STORE_NAME = "game-reviews";
 
 interface Game {
@@ -193,11 +193,22 @@ export default async () => {
   const batch = missingGames.slice(0, BATCH_SIZE);
   const results: { gameId: number; success: boolean; error?: string }[] = [];
 
+  // Fetch all game data in parallel first
+  console.log(`Fetching data for ${batch.length} games in parallel...`);
+  const gameDataMap = new Map<number, Awaited<ReturnType<typeof getGameData>>>();
+  await Promise.all(
+    batch.map(async (game) => {
+      const data = await getGameData(game.id);
+      gameDataMap.set(game.id, data);
+    })
+  );
+
+  // Process reviews sequentially (to avoid Gemini rate limits)
   for (const game of batch) {
     try {
       console.log(`Processing game ${game.id} (${game.gameDate})`);
 
-      const { scoring, threeStars, homeTeam, awayTeam } = await getGameData(game.id);
+      const { scoring, threeStars, homeTeam, awayTeam } = gameDataMap.get(game.id)!;
 
       const isLeafsHome = game.homeTeam.abbrev === "TOR";
       const leafsStats = isLeafsHome && homeTeam
