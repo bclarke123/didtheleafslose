@@ -20,9 +20,9 @@ export interface GameReviewData {
 
 const SYSTEM_PROMPT = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back.
 
-IMPORTANT: Write as if the game just ended moments ago. Do not reference the current day of the week or make assumptions about when the reader is reading this. The recap should feel immediate and timeless.`;
+STRICT RULE: Never mention days of the week, "tonight", "this evening", or any time references. Just talk about the game itself.`;
 
-const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. Do not mention what day it is or greet the reader. No headers or titles, just the recap text.`;
+const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text.`;
 
 function buildPrompt(data: GameReviewData): string {
   const scoringSummary = data.scoring
