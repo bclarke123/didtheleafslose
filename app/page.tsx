@@ -213,7 +213,7 @@ export default async function Home() {
         )}
 
         {scoring.length > 0 && (
-          <details className="mt-12 w-full max-w-lg">
+          <details className="mt-12 w-full max-w-xl">
             <summary className="cursor-pointer text-center text-gray-500 hover:text-gray-700 font-medium py-2">
               Scoring Summary
             </summary>
