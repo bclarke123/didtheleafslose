@@ -5,12 +5,10 @@ import {
   type Game,
   getLeafsGames,
   getGameScoring,
-  getGameBoxscore,
   getPeriodLabel,
   formatAssists,
 } from "./lib/nhl";
-import { generateGameReview, type GameReviewData } from "./lib/review";
-import { getGameReview, saveGameReview } from "./lib/storage";
+import { getGameReview } from "./lib/storage";
 
 // Force static generation - page rebuilds are triggered by scheduled function
 export const dynamic = "force-static";
@@ -127,9 +125,10 @@ export default async function Home() {
     );
   }
 
-  const [scoring, boxscore] = await Promise.all([
+  // Fetch scoring data and stored review in parallel
+  const [scoring, storedGame] = await Promise.all([
     getGameScoring(game.id),
-    getGameBoxscore(game.id),
+    getGameReview(game.id),
   ]);
 
   const isLeafsHome = game.homeTeam.abbrev === "TOR";
@@ -141,63 +140,8 @@ export default async function Home() {
 
   const didLose = (leafsScore ?? 0) < (opponentScore ?? 0);
 
-  const wasOT = scoring.some((p) => p.periodDescriptor.periodType === "OT");
-  const wasSO = scoring.some((p) => p.periodDescriptor.periodType === "SO");
-
-  const leafsBoxscore = boxscore
-    ? isLeafsHome
-      ? boxscore.homeTeam
-      : boxscore.awayTeam
-    : null;
-  const opponentBoxscore = boxscore
-    ? isLeafsHome
-      ? boxscore.awayTeam
-      : boxscore.homeTeam
-    : null;
-
-  // Check for existing stored review first
-  const storedGame = await getGameReview(game.id);
-  let review: string | null = storedGame?.review ?? null;
-
-  // Generate new review if we don't have one
-  if (!review) {
-    const reviewData: GameReviewData = {
-      leafsScore: leafsScore ?? 0,
-      opponentScore: opponentScore ?? 0,
-      opponent,
-      isLeafsHome,
-      didLose,
-      wasOT,
-      wasSO,
-      gameDate: game.gameDate,
-      scoring,
-      threeStars: boxscore?.summary?.threeStars ?? [],
-      leafsStats: leafsBoxscore
-        ? { sog: leafsBoxscore.sog, powerPlay: leafsBoxscore.powerPlay, pim: leafsBoxscore.pim }
-        : null,
-      opponentStats: opponentBoxscore
-        ? { sog: opponentBoxscore.sog, powerPlay: opponentBoxscore.powerPlay, pim: opponentBoxscore.pim }
-        : null,
-    };
-
-    review = await generateGameReview(reviewData);
-
-    // Save the review for the archive
-    if (review) {
-      await saveGameReview({
-        gameId: game.id,
-        gameDate: game.gameDate,
-        opponent,
-        isLeafsHome,
-        didLose,
-        leafsScore: leafsScore ?? 0,
-        opponentScore: opponentScore ?? 0,
-        wasOT,
-        wasSO,
-        review,
-      });
-    }
-  }
+  // Review comes from Blobs (created by cron job or backfill)
+  const review = storedGame?.review ?? null;
 
   const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long",

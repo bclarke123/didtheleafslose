@@ -1,20 +1,70 @@
 import { getStore } from "@netlify/blobs";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Config } from "@netlify/functions";
 
 const BUILD_HOOK_URL =
   "https://api.netlify.com/build_hooks/696d468b71a04ae195f79a56";
+const GAME_STATE_STORE = "game-state";
+const REVIEWS_STORE = "game-reviews";
 
 interface Game {
   id: number;
   gameDate: string;
   gameState: string;
+  awayTeam: {
+    abbrev: string;
+    placeName: { default: string };
+    score?: number;
+  };
+  homeTeam: {
+    abbrev: string;
+    placeName: { default: string };
+    score?: number;
+  };
 }
 
 interface ScheduleResponse {
   games: Game[];
 }
 
-async function getLatestCompletedGameId(): Promise<string | null> {
+interface StoredGame {
+  gameId: number;
+  gameDate: string;
+  opponent: string;
+  isLeafsHome: boolean;
+  didLose: boolean;
+  leafsScore: number;
+  opponentScore: number;
+  wasOT: boolean;
+  wasSO: boolean;
+  review: string;
+}
+
+interface ThreeStar {
+  star: number;
+  firstName: { default: string };
+  lastName: { default: string };
+  teamAbbrev: string;
+  position: string;
+  goals?: number;
+  assists?: number;
+  savePctg?: number;
+}
+
+interface ScoringPeriod {
+  periodDescriptor: {
+    number: number;
+    periodType: string;
+  };
+  goals: {
+    firstName: { default: string };
+    lastName: { default: string };
+    teamAbbrev: { default: string };
+    timeInPeriod: string;
+  }[];
+}
+
+async function getLatestCompletedGame(): Promise<Game | null> {
   const res = await fetch(
     "https://api-web.nhle.com/v1/club-schedule-season/TOR/now"
   );
@@ -34,8 +84,108 @@ async function getLatestCompletedGameId(): Promise<string | null> {
     return null;
   }
 
-  const latestGame = completedGames[completedGames.length - 1];
-  return `${latestGame.id}-${latestGame.gameDate}`;
+  return completedGames[completedGames.length - 1];
+}
+
+async function getGameData(gameId: number) {
+  const [landingRes, boxscoreRes] = await Promise.all([
+    fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`),
+    fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/boxscore`),
+  ]);
+
+  const landing = landingRes.ok ? await landingRes.json() : null;
+  const boxscore = boxscoreRes.ok ? await boxscoreRes.json() : null;
+
+  return {
+    scoring: (landing?.summary?.scoring ?? []) as ScoringPeriod[],
+    threeStars: (boxscore?.summary?.threeStars ?? []) as ThreeStar[],
+    homeTeam: boxscore?.homeTeam,
+    awayTeam: boxscore?.awayTeam,
+  };
+}
+
+async function generateReview(
+  game: Game,
+  scoring: ScoringPeriod[],
+  threeStars: ThreeStar[],
+  leafsStats: { sog: number; powerPlay: string; pim: number } | null,
+  opponentStats: { sog: number; powerPlay: string; pim: number } | null
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("GEMINI_API_KEY not set");
+    return null;
+  }
+
+  const isLeafsHome = game.homeTeam.abbrev === "TOR";
+  const leafsScore = isLeafsHome ? game.homeTeam.score ?? 0 : game.awayTeam.score ?? 0;
+  const opponentScore = isLeafsHome ? game.awayTeam.score ?? 0 : game.homeTeam.score ?? 0;
+  const opponent = isLeafsHome
+    ? game.awayTeam.placeName.default
+    : game.homeTeam.placeName.default;
+  const didLose = leafsScore < opponentScore;
+  const wasOT = scoring.some((p) => p.periodDescriptor.periodType === "OT");
+  const wasSO = scoring.some((p) => p.periodDescriptor.periodType === "SO");
+
+  const scoringSummary = scoring
+    .flatMap((period) =>
+      period.goals.map((g) => {
+        const periodLabel =
+          period.periodDescriptor.periodType === "OT"
+            ? "OT"
+            : period.periodDescriptor.periodType === "SO"
+            ? "SO"
+            : `P${period.periodDescriptor.number}`;
+        return `${periodLabel} ${g.timeInPeriod}: ${g.firstName.default} ${g.lastName.default} (${g.teamAbbrev.default})`;
+      })
+    )
+    .join("\n");
+
+  const threeStarsSummary = threeStars
+    .map((s) => {
+      const name = `${s.firstName.default} ${s.lastName.default}`;
+      const stats =
+        s.position === "G"
+          ? `${((s.savePctg ?? 0) * 100).toFixed(1)}% save pct`
+          : `${s.goals ?? 0}G, ${s.assists ?? 0}A`;
+      return `${s.star}. ${name} (${s.teamAbbrev}) - ${stats}`;
+    })
+    .join("\n");
+
+  const SYSTEM_PROMPT = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back.
+
+STRICT RULE: Never mention days of the week, "tonight", "this evening", or any time references. Just talk about the game itself.`;
+
+  const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text.`;
+
+  const prompt = `${SYSTEM_PROMPT}
+
+GAME DATA:
+- Date: ${game.gameDate}
+- Result: Leafs ${didLose ? "LOST" : "WON"} ${leafsScore}-${opponentScore} ${isLeafsHome ? "at home vs" : "on the road against"} ${opponent}
+${wasOT ? "- Game went to overtime" : ""}${wasSO ? "- Decided in a shootout" : ""}
+
+GOALS:
+${scoringSummary || "No goals"}
+
+THREE STARS:
+${threeStarsSummary || "Not available"}
+
+${leafsStats ? `LEAFS STATS: ${leafsStats.sog} shots, ${leafsStats.powerPlay} power play, ${leafsStats.pim} PIM` : ""}
+${opponentStats ? `${opponent.toUpperCase()} STATS: ${opponentStats.sog} shots, ${opponentStats.powerPlay} power play, ${opponentStats.pim} PIM` : ""}
+
+${INSTRUCTIONS}`;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error("Gemini error:", error);
+    return null;
+  }
 }
 
 async function triggerRebuild(): Promise<void> {
@@ -50,25 +200,86 @@ async function triggerRebuild(): Promise<void> {
 export default async () => {
   console.log("Checking for new game results...");
 
-  const store = getStore("game-state");
-  const currentGameId = await getLatestCompletedGameId();
+  const stateStore = getStore({ name: GAME_STATE_STORE, consistency: "strong" });
+  const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
-  if (!currentGameId) {
+  const latestGame = await getLatestCompletedGame();
+
+  if (!latestGame) {
     console.log("No completed games found");
-    return { statusCode: 200 };
+    return new Response("No completed games", { status: 200 });
   }
 
-  const lastKnownGameId = await store.get("lastGameId");
+  const currentGameKey = `${latestGame.id}-${latestGame.gameDate}`;
+  const lastKnownGameKey = await stateStore.get("lastGameId");
 
-  if (lastKnownGameId !== currentGameId) {
-    console.log(`New game detected: ${lastKnownGameId} -> ${currentGameId}`);
-    await store.set("lastGameId", currentGameId);
-    await triggerRebuild();
-  } else {
+  if (lastKnownGameKey === currentGameKey) {
     console.log("No new games");
+    return new Response("No new games", { status: 200 });
   }
+
+  console.log(`New game detected: ${lastKnownGameKey} -> ${currentGameKey}`);
+
+  // Check if we already have a review for this game
+  const existingReview = await reviewsStore.get(String(latestGame.id), { type: "json" });
+
+  if (!existingReview) {
+    console.log(`Generating review for game ${latestGame.id}...`);
+
+    // Fetch game data
+    const { scoring, threeStars, homeTeam, awayTeam } = await getGameData(latestGame.id);
+
+    const isLeafsHome = latestGame.homeTeam.abbrev === "TOR";
+    const leafsStats = isLeafsHome && homeTeam
+      ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
+      : !isLeafsHome && awayTeam
+      ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
+      : null;
+    const opponentStats = isLeafsHome && awayTeam
+      ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
+      : !isLeafsHome && homeTeam
+      ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
+      : null;
+
+    // Generate review
+    const review = await generateReview(latestGame, scoring, threeStars, leafsStats, opponentStats);
+
+    if (review) {
+      const leafsScore = isLeafsHome ? latestGame.homeTeam.score ?? 0 : latestGame.awayTeam.score ?? 0;
+      const opponentScore = isLeafsHome ? latestGame.awayTeam.score ?? 0 : latestGame.homeTeam.score ?? 0;
+      const opponent = isLeafsHome
+        ? latestGame.awayTeam.placeName.default
+        : latestGame.homeTeam.placeName.default;
+
+      const storedGame: StoredGame = {
+        gameId: latestGame.id,
+        gameDate: latestGame.gameDate,
+        opponent,
+        isLeafsHome,
+        didLose: leafsScore < opponentScore,
+        leafsScore,
+        opponentScore,
+        wasOT: scoring.some((p) => p.periodDescriptor.periodType === "OT"),
+        wasSO: scoring.some((p) => p.periodDescriptor.periodType === "SO"),
+        review,
+      };
+
+      await reviewsStore.setJSON(String(latestGame.id), storedGame);
+      console.log(`Saved review for game ${latestGame.id}`);
+    } else {
+      console.error("Failed to generate review, proceeding with rebuild anyway");
+    }
+  } else {
+    console.log(`Review already exists for game ${latestGame.id}`);
+  }
+
+  // Update state and trigger rebuild
+  await stateStore.set("lastGameId", currentGameKey);
+  await triggerRebuild();
+
+  return new Response(`Processed game ${latestGame.id}`, { status: 200 });
 };
 
 export const config: Config = {
-  schedule: "* * * * *"
+  schedule: "* * * * *",
 };

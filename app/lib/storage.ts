@@ -1,4 +1,5 @@
-// Game review storage using Netlify Blobs
+// Game review storage using Netlify Blobs (read-only from Next.js)
+// Writes are handled by the cron function and backfill function
 
 import { getStore } from "@netlify/blobs";
 
@@ -34,20 +35,6 @@ function getStoreOptions() {
   }
 
   return options;
-}
-
-export async function saveGameReview(game: StoredGame): Promise<void> {
-  if (!isNetlifyEnvironment()) {
-    console.log("Skipping save: not in Netlify environment");
-    return;
-  }
-
-  try {
-    const store = getStore(getStoreOptions());
-    await store.setJSON(String(game.gameId), game);
-  } catch (error) {
-    console.error("Failed to save game review:", error);
-  }
 }
 
 export async function getGameReview(gameId: number): Promise<StoredGame | null> {
