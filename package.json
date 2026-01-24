@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@netlify/blobs": "^10.5.0",
     "@netlify/functions": "^5.1.2",
     "next": "^16.1.3",

@@ -1,122 +1,17 @@
 import type { Metadata } from "next";
 import { AdBanner } from "./AdBanner";
-
-interface Game {
-  id: number;
-  gameDate: string;
-  gameType: number;
-  gameState: string;
-  awayTeam: {
-    abbrev: string;
-    placeName: { default: string };
-    score?: number;
-  };
-  homeTeam: {
-    abbrev: string;
-    placeName: { default: string };
-    score?: number;
-  };
-}
-
-interface ScheduleResponse {
-  games: Game[];
-}
-
-interface GoalAssist {
-  playerId: number;
-  firstName: { default: string };
-  lastName: { default: string };
-  sweaterNumber: number;
-}
-
-interface Goal {
-  playerId: number;
-  firstName: { default: string };
-  lastName: { default: string };
-  teamAbbrev: { default: string };
-  timeInPeriod: string;
-  shotType: string;
-  strength: string;
-  assists: GoalAssist[];
-  awayScore: number;
-  homeScore: number;
-  headshot: string;
-  highlightClipSharingUrl?: string;
-}
-
-interface ScoringPeriod {
-  periodDescriptor: {
-    number: number;
-    periodType: string;
-  };
-  goals: Goal[];
-}
-
-interface GameLanding {
-  summary: {
-    scoring: ScoringPeriod[];
-  };
-}
+import {
+  type Game,
+  getLeafsGames,
+  getGameScoring,
+  getGameBoxscore,
+  getPeriodLabel,
+  formatAssists,
+} from "./lib/nhl";
+import { generateGameReview, type GameReviewData } from "./lib/review";
 
 // Force static generation - page rebuilds are triggered by scheduled function
 export const dynamic = "force-static";
-
-async function getLeafsGames() {
-  const res = await fetch(
-    "https://api-web.nhle.com/v1/club-schedule-season/TOR/now"
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch schedule");
-  }
-
-  const data: ScheduleResponse = await res.json();
-
-  // Find the most recent completed game (gameState "OFF" or "FINAL")
-  const completedGames = data.games.filter(
-    (game) => game.gameState === "OFF" || game.gameState === "FINAL"
-  );
-
-  // Find the next upcoming game (gameState "FUT")
-  const upcomingGames = data.games.filter(
-    (game) => game.gameState === "FUT"
-  );
-
-  const latestGame = completedGames.length > 0
-    ? completedGames[completedGames.length - 1]
-    : null;
-
-  const nextGame = upcomingGames.length > 0
-    ? upcomingGames[0]
-    : null;
-
-  return { latestGame, nextGame };
-}
-
-async function getGameScoring(gameId: number): Promise<ScoringPeriod[]> {
-  const res = await fetch(
-    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`
-  );
-
-  if (!res.ok) {
-    return [];
-  }
-
-  const data: GameLanding = await res.json();
-  return data.summary?.scoring ?? [];
-}
-
-function getPeriodLabel(period: ScoringPeriod): string {
-  const { number, periodType } = period.periodDescriptor;
-  if (periodType === "OT") return "OT";
-  if (periodType === "SO") return "SO";
-  return `P${number}`;
-}
-
-function formatAssists(assists: GoalAssist[]): string {
-  if (assists.length === 0) return "Unassisted";
-  return assists.map((a) => `${a.firstName.default} ${a.lastName.default}`).join(", ");
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   const { latestGame: game } = await getLeafsGames();
@@ -134,8 +29,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const didLose = (leafsScore ?? 0) < (opponentScore ?? 0);
 
   const result = didLose ? "lost" : "won";
-  const title = `${didLose ? "YES" : "NO"} - Leafs ${result} ${leafsScore}-${opponentScore} vs ${opponent}`;
-  const description = `Toronto Maple Leafs ${result} their latest game against ${opponent} with a score of ${leafsScore}-${opponentScore}. Check the latest Leafs scores and results.`;
+  const title = `Did the Leafs Lose? ${didLose ? "YES" : "NO"} - ${leafsScore}-${opponentScore} vs ${opponent}`;
+  const description = didLose
+    ? `Why did the Leafs lose? Toronto Maple Leafs ${result} ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`
+    : `Toronto Maple Leafs ${result} their latest game ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`;
 
   return {
     title,
@@ -151,41 +48,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
-  const { latestGame: game, nextGame } = await getLeafsGames();
-
-  if (!game) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <h1 className="text-2xl text-gray-600">
-          No recent Toronto Maple Leafs games found
-        </h1>
-      </main>
-    );
-  }
-
-  const scoring = await getGameScoring(game.id);
-
-  const isLeafsHome = game.homeTeam.abbrev === "TOR";
-  const leafsScore = isLeafsHome ? game.homeTeam.score : game.awayTeam.score;
-  const opponentScore = isLeafsHome ? game.awayTeam.score : game.homeTeam.score;
-  const opponent = isLeafsHome
-    ? game.awayTeam.placeName.default
-    : game.homeTeam.placeName.default;
-
-  const didLose = (leafsScore ?? 0) < (opponentScore ?? 0);
-
-  const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Estimate end date as 3 hours after game start
+function buildJsonLd(game: Game, opponent: string, isLeafsHome: boolean, didLose: boolean, leafsScore: number, opponentScore: number) {
   const startDateTime = new Date(game.gameDate + "T12:00:00");
   const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000);
 
-  const jsonLd = {
+  return {
     "@context": "https://schema.org",
     "@type": "SportsEvent",
     name: `Toronto Maple Leafs vs ${opponent}`,
@@ -234,15 +101,85 @@ export default async function Home() {
       },
     ],
   };
+}
 
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Did the Leafs Lose?",
-    url: "https://didtheleafslose.com",
-    description:
-      "Check if the Toronto Maple Leafs won or lost their latest NHL game. Get instant Leafs scores and game results.",
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Did the Leafs Lose?",
+  url: "https://didtheleafslose.com",
+  description:
+    "Check if the Toronto Maple Leafs won or lost their latest NHL game. Get instant Leafs scores and game results.",
+};
+
+export default async function Home() {
+  const { latestGame: game, nextGame } = await getLeafsGames();
+
+  if (!game) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <h1 className="text-2xl text-gray-600">
+          No recent Toronto Maple Leafs games found
+        </h1>
+      </main>
+    );
+  }
+
+  const [scoring, boxscore] = await Promise.all([
+    getGameScoring(game.id),
+    getGameBoxscore(game.id),
+  ]);
+
+  const isLeafsHome = game.homeTeam.abbrev === "TOR";
+  const leafsScore = isLeafsHome ? game.homeTeam.score : game.awayTeam.score;
+  const opponentScore = isLeafsHome ? game.awayTeam.score : game.homeTeam.score;
+  const opponent = isLeafsHome
+    ? game.awayTeam.placeName.default
+    : game.homeTeam.placeName.default;
+
+  const didLose = (leafsScore ?? 0) < (opponentScore ?? 0);
+
+  const wasOT = scoring.some((p) => p.periodDescriptor.periodType === "OT");
+  const wasSO = scoring.some((p) => p.periodDescriptor.periodType === "SO");
+
+  const leafsBoxscore = boxscore
+    ? isLeafsHome
+      ? boxscore.homeTeam
+      : boxscore.awayTeam
+    : null;
+  const opponentBoxscore = boxscore
+    ? isLeafsHome
+      ? boxscore.awayTeam
+      : boxscore.homeTeam
+    : null;
+
+  const reviewData: GameReviewData = {
+    leafsScore: leafsScore ?? 0,
+    opponentScore: opponentScore ?? 0,
+    opponent,
+    isLeafsHome,
+    didLose,
+    wasOT,
+    wasSO,
+    scoring,
+    threeStars: boxscore?.summary?.threeStars ?? [],
+    leafsStats: leafsBoxscore
+      ? { sog: leafsBoxscore.sog, powerPlay: leafsBoxscore.powerPlay, pim: leafsBoxscore.pim }
+      : null,
+    opponentStats: opponentBoxscore
+      ? { sog: opponentBoxscore.sog, powerPlay: opponentBoxscore.powerPlay, pim: opponentBoxscore.pim }
+      : null,
   };
+
+  const review = await generateGameReview(reviewData);
+
+  const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  const jsonLd = buildJsonLd(game, opponent, isLeafsHome, didLose, leafsScore ?? 0, opponentScore ?? 0);
 
   return (
     <>
@@ -294,6 +231,16 @@ export default async function Home() {
             </time>
           </div>
         </article>
+
+        {review && (
+          <section className="mt-10 w-full max-w-xl text-center" aria-label="Game Review">
+            <div className="text-gray-600 text-base sm:text-lg leading-relaxed space-y-4">
+              {review.split("\n\n").map((paragraph, idx) => (
+                <p key={idx}>{paragraph}</p>
+              ))}
+            </div>
+          </section>
+        )}
 
         {scoring.length > 0 && (
           <details className="mt-12 w-full max-w-lg">
