@@ -21,6 +21,21 @@ function isNetlifyEnvironment(): boolean {
   return !!(process.env.NETLIFY || process.env.NETLIFY_LOCAL);
 }
 
+function getStoreOptions() {
+  const options: { name: string; consistency: "strong"; siteID?: string; token?: string } = {
+    name: STORE_NAME,
+    consistency: "strong",
+  };
+
+  // For build-time access, we need explicit credentials
+  if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_API_TOKEN) {
+    options.siteID = process.env.NETLIFY_SITE_ID;
+    options.token = process.env.NETLIFY_API_TOKEN;
+  }
+
+  return options;
+}
+
 export async function saveGameReview(game: StoredGame): Promise<void> {
   if (!isNetlifyEnvironment()) {
     console.log("Skipping save: not in Netlify environment");
@@ -28,7 +43,7 @@ export async function saveGameReview(game: StoredGame): Promise<void> {
   }
 
   try {
-    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const store = getStore(getStoreOptions());
     await store.setJSON(String(game.gameId), game);
   } catch (error) {
     console.error("Failed to save game review:", error);
@@ -41,7 +56,7 @@ export async function getGameReview(gameId: number): Promise<StoredGame | null> 
   }
 
   try {
-    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const store = getStore(getStoreOptions());
     const game = await store.get(String(gameId), { type: "json" });
     return game as StoredGame | null;
   } catch (error) {
@@ -56,7 +71,7 @@ export async function getAllGameReviews(): Promise<StoredGame[]> {
   }
 
   try {
-    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const store = getStore(getStoreOptions());
     const { blobs } = await store.list();
 
     const games = await Promise.all(
@@ -82,7 +97,7 @@ export async function getAllGameIds(): Promise<string[]> {
   }
 
   try {
-    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const store = getStore(getStoreOptions());
     const { blobs } = await store.list();
     return blobs.map((blob) => blob.key);
   } catch (error) {
