@@ -189,24 +189,16 @@ ${INSTRUCTIONS}`;
 }
 
 async function triggerRebuild(): Promise<void> {
-  const res = await fetch(BUILD_HOOK_URL, { method: "POST" });
-  if (!res.ok) {
-    console.error("Failed to trigger rebuild:", res.status);
-  } else {
-    console.log("Rebuild triggered successfully");
-  }
+  await fetch(BUILD_HOOK_URL, { method: "POST" });
 }
 
 export default async () => {
-  console.log("Checking for new game results...");
-
   const stateStore = getStore({ name: GAME_STATE_STORE, consistency: "strong" });
   const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
   const latestGame = await getLatestCompletedGame();
 
   if (!latestGame) {
-    console.log("No completed games found");
     return new Response("No completed games", { status: 200 });
   }
 
@@ -214,17 +206,13 @@ export default async () => {
   const lastKnownGameKey = await stateStore.get("lastGameId");
 
   if (lastKnownGameKey === currentGameKey) {
-    console.log("No new games");
     return new Response("No new games", { status: 200 });
   }
-
-  console.log(`New game detected: ${lastKnownGameKey} -> ${currentGameKey}`);
 
   // Check if we already have a review for this game
   const existingReview = await reviewsStore.get(String(latestGame.id), { type: "json" });
 
   if (!existingReview) {
-    console.log(`Generating review for game ${latestGame.id}...`);
 
     // Fetch game data
     const { scoring, threeStars, homeTeam, awayTeam } = await getGameData(latestGame.id);
@@ -265,12 +253,7 @@ export default async () => {
       };
 
       await reviewsStore.setJSON(String(latestGame.id), storedGame);
-      console.log(`Saved review for game ${latestGame.id}`);
-    } else {
-      console.error("Failed to generate review, proceeding with rebuild anyway");
     }
-  } else {
-    console.log(`Review already exists for game ${latestGame.id}`);
   }
 
   // Update state and trigger rebuild

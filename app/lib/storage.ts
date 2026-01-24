@@ -46,8 +46,7 @@ export async function getGameReview(gameId: number): Promise<StoredGame | null> 
     const store = getStore(getStoreOptions());
     const game = await store.get(String(gameId), { type: "json" });
     return game as StoredGame | null;
-  } catch (error) {
-    console.error("Failed to get game review:", error);
+  } catch {
     return null;
   }
 }
@@ -72,8 +71,7 @@ export async function getAllGameReviews(): Promise<StoredGame[]> {
     return games
       .filter((g): g is StoredGame => g !== null)
       .sort((a, b) => b.gameDate.localeCompare(a.gameDate));
-  } catch (error) {
-    console.error("Failed to get all game reviews:", error);
+  } catch {
     return [];
   }
 }
@@ -87,8 +85,7 @@ export async function getAllGameIds(): Promise<string[]> {
     const store = getStore(getStoreOptions());
     const { blobs } = await store.list();
     return blobs.map((blob) => blob.key);
-  } catch (error) {
-    console.error("Failed to get game IDs:", error);
+  } catch {
     return [];
   }
 }

@@ -165,20 +165,13 @@ Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (c
 }
 
 export default async () => {
-  console.log(`Using store: ${STORE_NAME}`);
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
-
-  // Get all completed games
   const games = await getCompletedGames();
-  console.log(`Found ${games.length} completed games this season`);
 
   // Check which games are already stored
   const { blobs } = await store.list();
-  console.log(`store.list() returned ${blobs.length} blobs:`, blobs.map(b => b.key));
   const storedIds = new Set(blobs.map((b) => b.key));
-
   const missingGames = games.filter((g) => !storedIds.has(String(g.id)));
-  console.log(`${missingGames.length} games need reviews`);
 
   if (missingGames.length === 0) {
     return new Response(
@@ -196,7 +189,6 @@ export default async () => {
   const results: { gameId: number; success: boolean; error?: string }[] = [];
 
   // Fetch all game data in parallel first
-  console.log(`Fetching data for ${batch.length} games in parallel...`);
   const gameDataMap = new Map<number, Awaited<ReturnType<typeof getGameData>>>();
   await Promise.all(
     batch.map(async (game) => {
@@ -208,7 +200,6 @@ export default async () => {
   // Process reviews sequentially (to avoid Gemini rate limits)
   for (const game of batch) {
     try {
-      console.log(`Processing game ${game.id} (${game.gameDate})`);
 
       const { scoring, threeStars, homeTeam, awayTeam } = gameDataMap.get(game.id)!;
 
@@ -251,25 +242,11 @@ export default async () => {
       };
 
       await store.setJSON(String(game.id), storedGame);
-
-      // Verify the save worked
-      const verification = await store.get(String(game.id), { type: "json" });
-      if (verification) {
-        results.push({ gameId: game.id, success: true });
-        console.log(`Saved and verified game ${game.id}`);
-      } else {
-        results.push({ gameId: game.id, success: false, error: "Save did not persist" });
-        console.log(`WARNING: Save did not persist for game ${game.id}`);
-      }
+      results.push({ gameId: game.id, success: true });
     } catch (error) {
-      console.error(`Error processing game ${game.id}:`, error);
       results.push({ gameId: game.id, success: false, error: String(error) });
     }
   }
-
-  // Re-fetch stored IDs to see actual state
-  const { blobs: updatedBlobs } = await store.list();
-  const updatedStoredIds = updatedBlobs.map((b) => b.key);
 
   const remaining = missingGames.length - batch.length;
 
@@ -277,10 +254,8 @@ export default async () => {
     JSON.stringify({
       processed: results,
       remaining,
-      storedGameIds: updatedStoredIds,
-      totalStored: updatedStoredIds.length,
       message: remaining > 0
-        ? `Processed ${batch.length} games. ${remaining} remaining - call again to continue.`
+        ? `Processed ${batch.length} games. ${remaining} remaining.`
         : "Backfill complete!",
     }),
     { headers: { "Content-Type": "application/json" } }
