@@ -1,4 +1,4 @@
-import { getStore, connectLambda } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Config } from "@netlify/functions";
 
@@ -164,10 +164,7 @@ Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (c
   }
 }
 
-export default async (req: Request) => {
-  // Connect to Netlify Blobs context
-  connectLambda(req);
-
+export default async () => {
   console.log(`Using store: ${STORE_NAME}`);
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
 
