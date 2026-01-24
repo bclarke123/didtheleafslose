@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Config } from "@netlify/functions";
 
-const BATCH_SIZE = 2;
+const BATCH_SIZE = 1;
 const STORE_NAME = "game-reviews";
 
 interface Game {
@@ -264,7 +264,4 @@ export default async () => {
 
 export const config: Config = {
   path: "/api/backfill",
-  runtimeConfig: {
-    timeoutSeconds: 60,
-  },
 };
