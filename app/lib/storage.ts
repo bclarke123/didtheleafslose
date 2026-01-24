@@ -28,7 +28,7 @@ export async function saveGameReview(game: StoredGame): Promise<void> {
   }
 
   try {
-    const store = getStore(STORE_NAME);
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
     await store.setJSON(String(game.gameId), game);
   } catch (error) {
     console.error("Failed to save game review:", error);
@@ -41,7 +41,7 @@ export async function getGameReview(gameId: number): Promise<StoredGame | null> 
   }
 
   try {
-    const store = getStore(STORE_NAME);
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
     const game = await store.get(String(gameId), { type: "json" });
     return game as StoredGame | null;
   } catch (error) {
@@ -56,7 +56,7 @@ export async function getAllGameReviews(): Promise<StoredGame[]> {
   }
 
   try {
-    const store = getStore(STORE_NAME);
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
     const { blobs } = await store.list();
 
     const games = await Promise.all(
@@ -82,7 +82,7 @@ export async function getAllGameIds(): Promise<string[]> {
   }
 
   try {
-    const store = getStore(STORE_NAME);
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
     const { blobs } = await store.list();
     return blobs.map((blob) => blob.key);
   } catch (error) {

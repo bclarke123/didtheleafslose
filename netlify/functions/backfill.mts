@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Config } from "@netlify/functions";
 
@@ -164,8 +164,12 @@ Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (c
   }
 }
 
-export default async () => {
-  const store = getStore(STORE_NAME);
+export default async (req: Request) => {
+  // Connect to Netlify Blobs context
+  connectLambda(req);
+
+  console.log(`Using store: ${STORE_NAME}`);
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
 
   // Get all completed games
   const games = await getCompletedGames();
@@ -173,6 +177,7 @@ export default async () => {
 
   // Check which games are already stored
   const { blobs } = await store.list();
+  console.log(`store.list() returned ${blobs.length} blobs:`, blobs.map(b => b.key));
   const storedIds = new Set(blobs.map((b) => b.key));
 
   const missingGames = games.filter((g) => !storedIds.has(String(g.id)));
@@ -249,13 +254,25 @@ export default async () => {
       };
 
       await store.setJSON(String(game.id), storedGame);
-      results.push({ gameId: game.id, success: true });
-      console.log(`Saved game ${game.id}`);
+
+      // Verify the save worked
+      const verification = await store.get(String(game.id), { type: "json" });
+      if (verification) {
+        results.push({ gameId: game.id, success: true });
+        console.log(`Saved and verified game ${game.id}`);
+      } else {
+        results.push({ gameId: game.id, success: false, error: "Save did not persist" });
+        console.log(`WARNING: Save did not persist for game ${game.id}`);
+      }
     } catch (error) {
       console.error(`Error processing game ${game.id}:`, error);
       results.push({ gameId: game.id, success: false, error: String(error) });
     }
   }
+
+  // Re-fetch stored IDs to see actual state
+  const { blobs: updatedBlobs } = await store.list();
+  const updatedStoredIds = updatedBlobs.map((b) => b.key);
 
   const remaining = missingGames.length - batch.length;
 
@@ -263,6 +280,8 @@ export default async () => {
     JSON.stringify({
       processed: results,
       remaining,
+      storedGameIds: updatedStoredIds,
+      totalStored: updatedStoredIds.length,
       message: remaining > 0
         ? `Processed ${batch.length} games. ${remaining} remaining - call again to continue.`
         : "Backfill complete!",
