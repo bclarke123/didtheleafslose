@@ -11,15 +11,18 @@ export interface GameReviewData {
   didLose: boolean;
   wasOT: boolean;
   wasSO: boolean;
+  gameDate: string; // ISO date string (YYYY-MM-DD)
   scoring: ScoringPeriod[];
   threeStars: ThreeStar[];
   leafsStats: { sog: number; powerPlay: string; pim: number } | null;
   opponentStats: { sog: number; powerPlay: string; pim: number } | null;
 }
 
-const SYSTEM_PROMPT = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back.`;
+const SYSTEM_PROMPT = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back.
 
-const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text.`;
+IMPORTANT: Write as if the game just ended moments ago. Do not reference the current day of the week or make assumptions about when the reader is reading this. The recap should feel immediate and timeless.`;
+
+const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. Do not mention what day it is or greet the reader. No headers or titles, just the recap text.`;
 
 function buildPrompt(data: GameReviewData): string {
   const scoringSummary = data.scoring
@@ -53,6 +56,7 @@ function buildPrompt(data: GameReviewData): string {
   return `${SYSTEM_PROMPT}
 
 GAME DATA:
+- Date: ${data.gameDate}
 - Result: Leafs ${data.didLose ? "LOST" : "WON"} ${data.leafsScore}-${data.opponentScore} ${data.isLeafsHome ? "at home vs" : "on the road against"} ${data.opponent}
 ${data.wasOT ? "- Game went to overtime" : ""}${data.wasSO ? "- Decided in a shootout" : ""}
 

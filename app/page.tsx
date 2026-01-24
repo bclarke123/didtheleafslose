@@ -161,6 +161,7 @@ export default async function Home() {
     didLose,
     wasOT,
     wasSO,
+    gameDate: game.gameDate,
     scoring,
     threeStars: boxscore?.summary?.threeStars ?? [],
     leafsStats: leafsBoxscore
@@ -233,8 +234,8 @@ export default async function Home() {
         </article>
 
         {review && (
-          <section className="mt-10 w-full max-w-xl text-center" aria-label="Game Review">
-            <div className="text-gray-600 text-base sm:text-lg leading-relaxed space-y-4">
+          <section className="mt-10 w-full max-w-xl" aria-label="Game Review">
+            <div className="text-gray-600 text-base sm:text-lg leading-relaxed space-y-4 text-justify">
               {review.split("\n\n").map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}
