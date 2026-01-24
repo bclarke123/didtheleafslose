@@ -11,6 +11,7 @@ interface Game {
   id: number;
   gameDate: string;
   gameState: string;
+  startTimeUTC: string;
   awayTeam: {
     abbrev: string;
     placeName: { default: string };
@@ -64,13 +65,17 @@ interface ScoringPeriod {
   }[];
 }
 
-async function getLatestCompletedGame(): Promise<Game | null> {
+interface ScheduleData {
+  latestCompleted: Game | null;
+  nextUpcoming: Game | null;
+}
+
+async function getScheduleData(): Promise<ScheduleData | null> {
   const res = await fetch(
     "https://api-web.nhle.com/v1/club-schedule-season/TOR/now"
   );
 
   if (!res.ok) {
-    console.error("Failed to fetch schedule:", res.status);
     return null;
   }
 
@@ -80,11 +85,14 @@ async function getLatestCompletedGame(): Promise<Game | null> {
     (game) => game.gameState === "OFF" || game.gameState === "FINAL"
   );
 
-  if (completedGames.length === 0) {
-    return null;
-  }
+  const upcomingGames = data.games.filter(
+    (game) => game.gameState === "FUT"
+  );
 
-  return completedGames[completedGames.length - 1];
+  return {
+    latestCompleted: completedGames.length > 0 ? completedGames[completedGames.length - 1] : null,
+    nextUpcoming: upcomingGames.length > 0 ? upcomingGames[0] : null,
+  };
 }
 
 async function getGameData(gameId: number) {
@@ -196,16 +204,41 @@ export default async () => {
   const stateStore = getStore({ name: GAME_STATE_STORE, consistency: "strong" });
   const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
-  const latestGame = await getLatestCompletedGame();
+  // Check if it's too early to bother checking (game hasn't started + buffer)
+  const nextGameTime = await stateStore.get("nextGameTime");
+  if (nextGameTime) {
+    const gameStart = new Date(nextGameTime).getTime();
+    const now = Date.now();
+    const checkAfter = gameStart + 1.5 * 60 * 60 * 1000;
 
-  if (!latestGame) {
+    if (now < checkAfter) {
+      const msUntilGame = gameStart - now;
+      const hoursUntil = Math.floor(msUntilGame / (60 * 60 * 1000));
+      const minsUntil = Math.floor((msUntilGame % (60 * 60 * 1000)) / (60 * 1000));
+      const timeStr = msUntilGame > 0
+        ? `starts in ${hoursUntil}h ${minsUntil}m`
+        : "in progress";
+      console.log(`Game ${timeStr}, not checking`);
+      return new Response("Too early to check", { status: 200 });
+    }
+  }
+
+  const schedule = await getScheduleData();
+
+  if (!schedule || !schedule.latestCompleted) {
     return new Response("No completed games", { status: 200 });
   }
 
+  const latestGame = schedule.latestCompleted;
   const currentGameKey = `${latestGame.id}-${latestGame.gameDate}`;
   const lastKnownGameKey = await stateStore.get("lastGameId");
 
   if (lastKnownGameKey === currentGameKey) {
+    // No new game, but update next game time if we have one
+    if (schedule.nextUpcoming) {
+      await stateStore.set("nextGameTime", schedule.nextUpcoming.startTimeUTC);
+    }
+    console.log("No new games");
     return new Response("No new games", { status: 200 });
   }
 
@@ -213,7 +246,6 @@ export default async () => {
   const existingReview = await reviewsStore.get(String(latestGame.id), { type: "json" });
 
   if (!existingReview) {
-
     // Fetch game data
     const { scoring, threeStars, homeTeam, awayTeam } = await getGameData(latestGame.id);
 
@@ -258,8 +290,12 @@ export default async () => {
 
   // Update state and trigger rebuild
   await stateStore.set("lastGameId", currentGameKey);
+  if (schedule.nextUpcoming) {
+    await stateStore.set("nextGameTime", schedule.nextUpcoming.startTimeUTC);
+  }
   await triggerRebuild();
 
+  console.log(`Game finished: ${latestGame.id}`);
   return new Response(`Processed game ${latestGame.id}`, { status: 200 });
 };
 
