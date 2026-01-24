@@ -18,9 +18,14 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
     return { title: "Game Not Found" };
   }
 
-  const result = game.didLose ? "lost" : "won";
+  const dateStr = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const result = game.didLose ? "Lost" : "Won";
   return {
-    title: `Leafs ${result} ${game.leafsScore}-${game.opponentScore} vs ${game.opponent} - Did the Leafs Lose?`,
+    title: `Did the Leafs Lose? ${dateStr} - ${result} ${game.leafsScore}-${game.opponentScore} vs ${game.opponent}`,
     description: game.review.slice(0, 160),
   };
 }
