@@ -9,6 +9,7 @@ import {
   formatAssists,
 } from "./lib/nhl";
 import { generateGameReview, type GameReviewData } from "./lib/review";
+import { getGameReview, saveGameReview } from "./lib/storage";
 
 // Force static generation - page rebuilds are triggered by scheduled function
 export const dynamic = "force-static";
@@ -153,26 +154,49 @@ export default async function Home() {
       : boxscore.homeTeam
     : null;
 
-  const reviewData: GameReviewData = {
-    leafsScore: leafsScore ?? 0,
-    opponentScore: opponentScore ?? 0,
-    opponent,
-    isLeafsHome,
-    didLose,
-    wasOT,
-    wasSO,
-    gameDate: game.gameDate,
-    scoring,
-    threeStars: boxscore?.summary?.threeStars ?? [],
-    leafsStats: leafsBoxscore
-      ? { sog: leafsBoxscore.sog, powerPlay: leafsBoxscore.powerPlay, pim: leafsBoxscore.pim }
-      : null,
-    opponentStats: opponentBoxscore
-      ? { sog: opponentBoxscore.sog, powerPlay: opponentBoxscore.powerPlay, pim: opponentBoxscore.pim }
-      : null,
-  };
+  // Check for existing stored review first
+  const storedGame = await getGameReview(game.id);
+  let review: string | null = storedGame?.review ?? null;
 
-  const review = await generateGameReview(reviewData);
+  // Generate new review if we don't have one
+  if (!review) {
+    const reviewData: GameReviewData = {
+      leafsScore: leafsScore ?? 0,
+      opponentScore: opponentScore ?? 0,
+      opponent,
+      isLeafsHome,
+      didLose,
+      wasOT,
+      wasSO,
+      gameDate: game.gameDate,
+      scoring,
+      threeStars: boxscore?.summary?.threeStars ?? [],
+      leafsStats: leafsBoxscore
+        ? { sog: leafsBoxscore.sog, powerPlay: leafsBoxscore.powerPlay, pim: leafsBoxscore.pim }
+        : null,
+      opponentStats: opponentBoxscore
+        ? { sog: opponentBoxscore.sog, powerPlay: opponentBoxscore.powerPlay, pim: opponentBoxscore.pim }
+        : null,
+    };
+
+    review = await generateGameReview(reviewData);
+
+    // Save the review for the archive
+    if (review) {
+      await saveGameReview({
+        gameId: game.id,
+        gameDate: game.gameDate,
+        opponent,
+        isLeafsHome,
+        didLose,
+        leafsScore: leafsScore ?? 0,
+        opponentScore: opponentScore ?? 0,
+        wasOT,
+        wasSO,
+        review,
+      });
+    }
+  }
 
   const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long",
