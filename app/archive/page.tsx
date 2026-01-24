@@ -56,6 +56,7 @@ export default async function ArchivePage() {
                 const gameDate = new Date(game.gameDate + "T12:00:00").toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
+                  year: "numeric",
                 });
                 return (
                   <tr key={game.gameId} className="hover:bg-gray-50">

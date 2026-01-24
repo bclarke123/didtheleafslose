@@ -264,4 +264,7 @@ export default async () => {
 
 export const config: Config = {
   path: "/api/backfill",
+  runtimeConfig: {
+    timeoutSeconds: 60,
+  },
 };
