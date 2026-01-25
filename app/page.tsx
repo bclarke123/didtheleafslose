@@ -34,16 +34,21 @@ export async function generateMetadata(): Promise<Metadata> {
     ? `Why did the Leafs lose? Toronto Maple Leafs ${result} ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`
     : `Toronto Maple Leafs ${result} their latest game ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`;
 
+  const ogImage = didLose ? "/dtll-lose.png" : "/dtll-win.png";
+
   return {
     title,
     description,
     openGraph: {
       title,
       description,
+      images: [ogImage],
     },
     twitter: {
       title,
       description,
+      card: "summary_large_image",
+      images: [ogImage],
     },
   };
 }
