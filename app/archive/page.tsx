@@ -6,6 +6,9 @@ export const dynamic = "force-static";
 export const metadata = {
   title: "Game Archive - Did the Leafs Lose?",
   description: "Archive of Toronto Maple Leafs game recaps and results.",
+  alternates: {
+    canonical: "https://www.didtheleafslose.com/archive",
+  },
 };
 
 export default async function ArchivePage() {

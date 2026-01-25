@@ -107,7 +107,7 @@ const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Did the Leafs Lose?",
-  url: "https://didtheleafslose.com",
+  url: "https://www.didtheleafslose.com",
   description:
     "Check if the Toronto Maple Leafs won or lost their latest NHL game. Get instant Leafs scores and game results.",
 };

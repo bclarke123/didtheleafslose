@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllGameIds } from "./lib/storage";
 
-const BASE_URL = "https://didtheleafslose.com";
+const BASE_URL = "https://www.didtheleafslose.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const gameIds = await getAllGameIds();

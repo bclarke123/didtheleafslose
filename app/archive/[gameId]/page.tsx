@@ -27,6 +27,9 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
   return {
     title: `Did the Leafs Lose? ${dateStr} - ${result} ${game.leafsScore}-${game.opponentScore} vs ${game.opponent}`,
     description: game.review.slice(0, 160),
+    alternates: {
+      canonical: `https://www.didtheleafslose.com/archive/${gameId}`,
+    },
   };
 }
 

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     title: "Did the Leafs Lose? | Toronto Maple Leafs Score",
     description:
       "Instantly find out if the Toronto Maple Leafs won or lost their latest NHL game.",
-    url: "https://didtheleafslose.com",
+    url: "https://www.didtheleafslose.com",
     siteName: "Did the Leafs Lose?",
     locale: "en_CA",
     type: "website",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: "https://didtheleafslose.com",
+    canonical: "https://www.didtheleafslose.com",
   },
 };
 
