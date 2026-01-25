@@ -224,25 +224,6 @@ export default async () => {
     return new Response("Game in progress", { status: 200 });
   }
 
-  // Check if it's too early to bother checking (no live game, next game hasn't started + buffer)
-  const nextGameTime = await stateStore.get("nextGameTime");
-  if (nextGameTime) {
-    const gameStart = new Date(nextGameTime).getTime();
-    const now = Date.now();
-    const checkAfter = gameStart + 1.5 * 60 * 60 * 1000;
-
-    if (now < checkAfter) {
-      const msUntilGame = gameStart - now;
-      const hoursUntil = Math.floor(msUntilGame / (60 * 60 * 1000));
-      const minsUntil = Math.floor((msUntilGame % (60 * 60 * 1000)) / (60 * 1000));
-      const timeStr = msUntilGame > 0
-        ? `starts in ${hoursUntil}h ${minsUntil}m`
-        : "in progress";
-      console.log(`Game ${timeStr}, not checking`);
-      return new Response("Too early to check", { status: 200 });
-    }
-  }
-
   if (!schedule.latestCompleted) {
     return new Response("No completed games", { status: 200 });
   }
@@ -251,16 +232,33 @@ export default async () => {
   const currentGameKey = `${latestGame.id}-${latestGame.gameDate}`;
   const lastKnownGameKey = await stateStore.get("lastGameId");
 
-  if (lastKnownGameKey === currentGameKey) {
-    // No new game, but update next game time if we have one
-    if (schedule.nextUpcoming) {
-      await stateStore.set("nextGameTime", schedule.nextUpcoming.startTimeUTC);
+  // Check if there's a new completed game to process
+  const hasNewGame = lastKnownGameKey !== currentGameKey;
+
+  // If no new game, check if it's too early to bother checking
+  if (!hasNewGame) {
+    const nextGameTime = await stateStore.get("nextGameTime");
+    if (nextGameTime) {
+      const gameStart = new Date(nextGameTime).getTime();
+      const now = Date.now();
+      const checkAfter = gameStart + 1.5 * 60 * 60 * 1000;
+
+      if (now < checkAfter) {
+        const msUntilGame = gameStart - now;
+        const hoursUntil = Math.floor(msUntilGame / (60 * 60 * 1000));
+        const minsUntil = Math.floor((msUntilGame % (60 * 60 * 1000)) / (60 * 1000));
+        const timeStr = msUntilGame > 0
+          ? `starts in ${hoursUntil}h ${minsUntil}m`
+          : "in progress";
+        console.log(`Game ${timeStr}, not checking`);
+        return new Response("Too early to check", { status: 200 });
+      }
     }
     console.log("No new games");
     return new Response("No new games", { status: 200 });
   }
 
-  // Check if we already have a review for this game
+  // New game to process - check if we already have a review
   const existingReview = await reviewsStore.get(String(latestGame.id), { type: "json" });
 
   if (!existingReview) {
