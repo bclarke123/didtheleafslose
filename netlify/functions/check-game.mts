@@ -68,6 +68,7 @@ interface ScoringPeriod {
 interface ScheduleData {
   latestCompleted: Game | null;
   nextUpcoming: Game | null;
+  gameInProgress: Game | null;
 }
 
 async function getScheduleData(): Promise<ScheduleData | null> {
@@ -89,9 +90,15 @@ async function getScheduleData(): Promise<ScheduleData | null> {
     (game) => game.gameState === "FUT"
   );
 
+  // Games in progress have states like LIVE, CRIT, etc.
+  const liveGames = data.games.filter(
+    (game) => game.gameState !== "OFF" && game.gameState !== "FINAL" && game.gameState !== "FUT"
+  );
+
   return {
     latestCompleted: completedGames.length > 0 ? completedGames[completedGames.length - 1] : null,
     nextUpcoming: upcomingGames.length > 0 ? upcomingGames[0] : null,
+    gameInProgress: liveGames.length > 0 ? liveGames[0] : null,
   };
 }
 
@@ -204,7 +211,20 @@ export default async () => {
   const stateStore = getStore({ name: GAME_STATE_STORE, consistency: "strong" });
   const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
-  // Check if it's too early to bother checking (game hasn't started + buffer)
+  // Always fetch schedule first to check for live games
+  const schedule = await getScheduleData();
+
+  if (!schedule) {
+    return new Response("Could not fetch schedule", { status: 200 });
+  }
+
+  // If a game is currently in progress, wait for it to finish
+  if (schedule.gameInProgress) {
+    console.log(`Game in progress (state: ${schedule.gameInProgress.gameState}), waiting for completion`);
+    return new Response("Game in progress", { status: 200 });
+  }
+
+  // Check if it's too early to bother checking (no live game, next game hasn't started + buffer)
   const nextGameTime = await stateStore.get("nextGameTime");
   if (nextGameTime) {
     const gameStart = new Date(nextGameTime).getTime();
@@ -223,9 +243,7 @@ export default async () => {
     }
   }
 
-  const schedule = await getScheduleData();
-
-  if (!schedule || !schedule.latestCompleted) {
+  if (!schedule.latestCompleted) {
     return new Response("No completed games", { status: 200 });
   }
 
