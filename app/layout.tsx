@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.didtheleafslose.com"),
   title: "Did the Leafs Lose? | Toronto Maple Leafs Score & Results",
   description:
     "Check if the Toronto Maple Leafs won or lost their latest NHL game. Get instant Leafs scores, game results, and updates for the current season.",
