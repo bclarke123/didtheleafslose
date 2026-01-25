@@ -167,15 +167,13 @@ async function generateReview(
     })
     .join("\n");
 
-  const SYSTEM_PROMPT = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back.
+  const systemInstruction = `You are a snarky, self-deprecating Toronto Maple Leafs fan writing a brief game recap. You've seen it all - decades of playoff disappointments, blown leads, and yet you keep coming back. Your main goal is to be funny, witty, and entertaining.
 
-STRICT RULE: Never mention days of the week, "tonight", "this evening", or any time references. Just talk about the game itself.`;
+STRICT RULE: Never mention days of the week, "tonight", "this evening", or any time references. Just talk about the game itself. Never mention the Raptors or Blue Jays. Never use emoji, em dashes, or semicolons.
 
-  const INSTRUCTIONS = `Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text.`;
+You will be given game data and stats from the Leafs' most recent game. Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players and moments from the data. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text.`;
 
-  const prompt = `${SYSTEM_PROMPT}
-
-GAME DATA:
+  const prompt = `GAME DATA:
 - Date: ${game.gameDate}
 - Result: Leafs ${didLose ? "LOST" : "WON"} ${leafsScore}-${opponentScore} ${isLeafsHome ? "at home vs" : "on the road against"} ${opponent}
 ${wasOT ? "- Game went to overtime" : ""}${wasSO ? "- Decided in a shootout" : ""}
@@ -187,12 +185,13 @@ THREE STARS:
 ${threeStarsSummary || "Not available"}
 
 ${leafsStats ? `LEAFS STATS: ${leafsStats.sog} shots, ${leafsStats.powerPlay} power play, ${leafsStats.pim} PIM` : ""}
-${opponentStats ? `${opponent.toUpperCase()} STATS: ${opponentStats.sog} shots, ${opponentStats.powerPlay} power play, ${opponentStats.pim} PIM` : ""}
-
-${INSTRUCTIONS}`;
+${opponentStats ? `${opponent.toUpperCase()} STATS: ${opponentStats.sog} shots, ${opponentStats.powerPlay} power play, ${opponentStats.pim} PIM` : ""}`;
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3-flash-preview",
+    systemInstruction,
+  });
 
   try {
     const result = await model.generateContent(prompt);
@@ -212,7 +211,7 @@ export default async () => {
   const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
   // Check if we should poll the API based on stored next game time
-  const nextGameTime = await stateStore.get("nextGameTime");
+  const nextGameTime = await stateStore.get("nextGameTime", { type: "text" });
 
   if (nextGameTime) {
     const gameStart = new Date(nextGameTime).getTime();
@@ -255,7 +254,7 @@ export default async () => {
 
   const latestGame = schedule.latestCompleted;
   const currentGameKey = `${latestGame.id}-${latestGame.gameDate}`;
-  const lastKnownGameKey = await stateStore.get("lastGameId");
+  const lastKnownGameKey = await stateStore.get("lastGameId", { type: "text" });
 
   // No new game to process
   if (lastKnownGameKey === currentGameKey) {
