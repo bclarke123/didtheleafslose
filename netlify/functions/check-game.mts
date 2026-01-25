@@ -211,16 +211,41 @@ export default async () => {
   const stateStore = getStore({ name: GAME_STATE_STORE, consistency: "strong" });
   const reviewsStore = getStore({ name: REVIEWS_STORE, consistency: "strong" });
 
-  // Always fetch schedule first to check for live games
+  // Check if we should poll the API based on stored next game time
+  const nextGameTime = await stateStore.get("nextGameTime");
+
+  if (nextGameTime) {
+    const gameStart = new Date(nextGameTime).getTime();
+    const now = Date.now();
+    const msSinceStart = now - gameStart;
+
+    // Game hasn't started yet - no need to poll
+    if (msSinceStart < 0) {
+      const msUntilGame = -msSinceStart;
+      const hoursUntil = Math.floor(msUntilGame / (60 * 60 * 1000));
+      const minsUntil = Math.floor((msUntilGame % (60 * 60 * 1000)) / (60 * 1000));
+      console.log(`Game starts in ${hoursUntil}h ${minsUntil}m`);
+      return new Response("Game not started", { status: 200 });
+    }
+
+    // Game started less than 90 minutes ago - unlikely to be over
+    if (msSinceStart < 90 * 60 * 1000) {
+      const minsSinceStart = Math.floor(msSinceStart / (60 * 1000));
+      console.log(`Game started ${minsSinceStart}m ago, waiting`);
+      return new Response("Game in progress", { status: 200 });
+    }
+  }
+
+  // Either no nextGameTime (bootstrap) or game might be over - poll API
   const schedule = await getScheduleData();
 
   if (!schedule) {
     return new Response("Could not fetch schedule", { status: 200 });
   }
 
-  // If a game is currently in progress, wait for it to finish
+  // Game still in progress - wait for it to finish
   if (schedule.gameInProgress) {
-    console.log(`Game in progress (state: ${schedule.gameInProgress.gameState}), waiting for completion`);
+    console.log(`Game in progress (state: ${schedule.gameInProgress.gameState}), waiting`);
     return new Response("Game in progress", { status: 200 });
   }
 
@@ -232,27 +257,11 @@ export default async () => {
   const currentGameKey = `${latestGame.id}-${latestGame.gameDate}`;
   const lastKnownGameKey = await stateStore.get("lastGameId");
 
-  // Check if there's a new completed game to process
-  const hasNewGame = lastKnownGameKey !== currentGameKey;
-
-  // If no new game, check if it's too early to bother checking
-  if (!hasNewGame) {
-    const nextGameTime = await stateStore.get("nextGameTime");
-    if (nextGameTime) {
-      const gameStart = new Date(nextGameTime).getTime();
-      const now = Date.now();
-      const checkAfter = gameStart + 1.5 * 60 * 60 * 1000;
-
-      if (now < checkAfter) {
-        const msUntilGame = gameStart - now;
-        const hoursUntil = Math.floor(msUntilGame / (60 * 60 * 1000));
-        const minsUntil = Math.floor((msUntilGame % (60 * 60 * 1000)) / (60 * 1000));
-        const timeStr = msUntilGame > 0
-          ? `starts in ${hoursUntil}h ${minsUntil}m`
-          : "in progress";
-        console.log(`Game ${timeStr}, not checking`);
-        return new Response("Too early to check", { status: 200 });
-      }
+  // No new game to process
+  if (lastKnownGameKey === currentGameKey) {
+    // Update nextGameTime in case it's stale or missing
+    if (schedule.nextUpcoming) {
+      await stateStore.set("nextGameTime", schedule.nextUpcoming.startTimeUTC);
     }
     console.log("No new games");
     return new Response("No new games", { status: 200 });
