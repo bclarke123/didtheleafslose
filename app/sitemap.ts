@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getAllGameIds } from "./lib/storage";
 
+export const dynamic = "force-static";
+
 const BASE_URL = "https://www.didtheleafslose.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

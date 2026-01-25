@@ -18,8 +18,16 @@ export interface StoredGame {
 
 const STORE_NAME = "game-reviews";
 
-function isNetlifyEnvironment(): boolean {
-  return !!(process.env.NETLIFY || process.env.NETLIFY_LOCAL);
+function canAccessBlobs(): boolean {
+  // Running on Netlify (runtime or local dev)
+  if (process.env.NETLIFY || process.env.NETLIFY_LOCAL) {
+    return true;
+  }
+  // Build-time access with explicit credentials
+  if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_API_TOKEN) {
+    return true;
+  }
+  return false;
 }
 
 function getStoreOptions() {
@@ -38,7 +46,7 @@ function getStoreOptions() {
 }
 
 export async function getGameReview(gameId: number): Promise<StoredGame | null> {
-  if (!isNetlifyEnvironment()) {
+  if (!canAccessBlobs()) {
     return null;
   }
 
@@ -52,7 +60,7 @@ export async function getGameReview(gameId: number): Promise<StoredGame | null> 
 }
 
 export async function getAllGameReviews(): Promise<StoredGame[]> {
-  if (!isNetlifyEnvironment()) {
+  if (!canAccessBlobs()) {
     return [];
   }
 
@@ -77,7 +85,7 @@ export async function getAllGameReviews(): Promise<StoredGame[]> {
 }
 
 export async function getAllGameIds(): Promise<string[]> {
-  if (!isNetlifyEnvironment()) {
+  if (!canAccessBlobs()) {
     return [];
   }
 
