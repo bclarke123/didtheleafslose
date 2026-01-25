@@ -9,6 +9,9 @@ export const metadata = {
   alternates: {
     canonical: "https://www.didtheleafslose.com/archive",
   },
+  openGraph: {
+    url: "https://www.didtheleafslose.com/archive",
+  },
 };
 
 export default async function ArchivePage() {

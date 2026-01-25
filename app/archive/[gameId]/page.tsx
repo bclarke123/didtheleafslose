@@ -30,6 +30,9 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
     alternates: {
       canonical: `https://www.didtheleafslose.com/archive/${gameId}`,
     },
+    openGraph: {
+      url: `https://www.didtheleafslose.com/archive/${gameId}`,
+    },
   };
 }
 
