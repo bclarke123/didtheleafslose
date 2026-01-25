@@ -278,7 +278,7 @@ export default async function Home() {
           });
           return (
             <section className="mt-12 text-center" aria-label="Next Game">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Next Game
               </h2>
               <p className="text-xl sm:text-2xl text-gray-700">
@@ -296,7 +296,7 @@ export default async function Home() {
           <AdBanner size="large" />
         </div>
 
-        <footer className="mt-8 pb-16 text-center text-sm text-gray-400 max-w-md">
+        <footer className="mt-8 pb-16 text-center text-sm text-gray-500 max-w-md">
           <p>
             Latest Toronto Maple Leafs score and game results. Updated automatically
             after every Leafs game.
