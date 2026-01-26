@@ -13,6 +13,11 @@ import { getGameReview } from "./lib/storage";
 // Force static generation - page rebuilds are triggered by scheduled function
 export const dynamic = "force-static";
 
+function truncateDescription(text: string, maxLength = 155): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 1).trimEnd() + "…";
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const { latestGame: game } = await getLeafsGames();
 
@@ -30,9 +35,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const result = didLose ? "lost" : "won";
   const title = `Did the Leafs Lose? ${didLose ? "YES" : "NO"} - ${leafsScore}-${opponentScore} vs ${opponent}`;
-  const description = didLose
-    ? `Why did the Leafs lose? Toronto Maple Leafs ${result} ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`
-    : `Toronto Maple Leafs ${result} their latest game ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`;
+  const description = truncateDescription(
+    didLose
+      ? `Why did the Leafs lose? Toronto Maple Leafs ${result} ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`
+      : `Toronto Maple Leafs ${result} their latest game ${leafsScore}-${opponentScore} against ${opponent}. Get the latest Leafs scores, results, and game recaps.`
+  );
 
   const ogImage = didLose ? "/dtll-lose.webp" : "/dtll-win.webp";
 
