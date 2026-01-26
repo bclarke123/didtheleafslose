@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
     year: "numeric",
   });
   const result = game.didLose ? "Lost" : "Won";
-  const ogImage = game.didLose ? "/dtll-lose.png" : "/dtll-win.png";
+  const ogImage = game.didLose ? "/dtll-lose.webp" : "/dtll-win.webp";
   return {
     title: `Did the Leafs Lose? ${dateStr} - ${result} ${game.leafsScore}-${game.opponentScore} vs ${game.opponent}`,
     description: game.review.slice(0, 160),
