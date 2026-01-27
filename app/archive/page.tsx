@@ -11,11 +11,11 @@ export const metadata = {
   },
   openGraph: {
     url: "https://www.didtheleafslose.com/archive",
-    images: ["/dtll-lose.png"],
+    images: ["/dtll-lose.webp"],
   },
   twitter: {
     card: "summary_large_image" as const,
-    images: ["/dtll-lose.png"],
+    images: ["/dtll-lose.webp"],
   },
 };
 
