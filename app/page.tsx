@@ -310,8 +310,8 @@ export default async function Home() {
 
         <footer className="mt-8 pb-16 text-center text-sm text-gray-500 max-w-md">
           <p>
-            Latest Toronto Maple Leafs score and game results. Updated automatically
-            after every Leafs game.
+            Latest Toronto Maple Leafs score and game results. A new recap after
+            every Leafs game.
           </p>
           <Link href="/archive" className="mt-4 block hover:text-gray-600">
             Archive
