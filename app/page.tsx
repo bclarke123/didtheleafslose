@@ -178,10 +178,11 @@ export default async function Home() {
           <h1>Did the Toronto Maple Leafs Lose Their Latest Game?</h1>
         </header>
 
-        {/* Ad Slot 1: Top of page */}
+        {/* Ad Slot 1: Top of page
         <div className="mb-16 w-full max-w-3xl" aria-label="Advertisement">
           <AdBanner />
         </div>
+        */}
 
         <article aria-label="Toronto Maple Leafs Game Result">
           <p
@@ -303,10 +304,11 @@ export default async function Home() {
           );
         })()}
 
-        {/* Ad Slot 2: Bottom of page */}
+        {/* Ad Slot 2: Bottom of page
         <div className="mt-12 w-full max-w-3xl" aria-label="Advertisement">
           <AdBanner size="large" />
         </div>
+        */}
 
         <footer className="mt-8 pb-16 text-center text-sm text-gray-500 max-w-md">
           <p>
