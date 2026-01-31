@@ -63,7 +63,7 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
   });
 
   return (
-    <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-2.5">
+    <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-[50px]">
       {/* Ad Slot 1: Top of page
       <div className="mb-8 w-full max-w-3xl" aria-label="Advertisement">
         <AdBanner />

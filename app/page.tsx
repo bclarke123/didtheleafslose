@@ -173,7 +173,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-2.5">
+      <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-[50px]">
         <header className="sr-only">
           <h1>Did the Toronto Maple Leafs Lose Their Latest Game?</h1>
         </header>
