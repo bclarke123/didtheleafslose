@@ -109,6 +109,14 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
           <AdBanner size="large" />
         </div>
         */}
+
+        <footer className="mt-8 pb-16 text-center text-sm text-gray-500 max-w-md">
+          <p>
+            Latest Toronto Maple Leafs score and game results.
+            <br />
+            A new recap after every Leafs game.
+          </p>
+        </footer>
     </main>
   );
 }
