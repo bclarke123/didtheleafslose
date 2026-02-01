@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AdBanner } from "./AdBanner";
 import type { Game } from "@/lib/nhl-types";
 import { getLeafsGames, getGameScoring } from "@/lib/nhl-api";
@@ -169,7 +168,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-[50px]">
+      <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-8">
         <header className="sr-only">
           <h1>Did the Toronto Maple Leafs Lose Their Latest Game?</h1>
         </header>
@@ -224,7 +223,7 @@ export default async function Home() {
         {scoring.length > 0 && (
           <details className="mt-12 w-full max-w-xl">
             <summary className="cursor-pointer text-center text-gray-500 hover:text-gray-700 font-medium py-2">
-              Scoring Summary
+              &nbsp;Scoring Summary
             </summary>
             <div className="mt-4 space-y-4">
               {scoring.map((period) => {
@@ -308,12 +307,10 @@ export default async function Home() {
 
         <footer className="mt-8 pb-16 text-center text-sm text-gray-500 max-w-md">
           <p>
-            Latest Toronto Maple Leafs score and game results. A new recap after
-            every Leafs game.
+            Latest Toronto Maple Leafs score and game results.
+            <br />
+            A new recap after every Leafs game.
           </p>
-          <Link href="/archive" className="mt-4 block hover:text-gray-600">
-            Archive
-          </Link>
         </footer>
       </main>
     </>

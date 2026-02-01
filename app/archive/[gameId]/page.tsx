@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGameReview, getAllGameIds } from "../../lib/storage";
-import { AdBanner } from "../../AdBanner";
 
 function truncateDescription(text: string, maxLength = 155): string {
   if (text.length <= maxLength) return text;
@@ -63,18 +61,7 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
   });
 
   return (
-    <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-[50px]">
-      {/* Ad Slot 1: Top of page
-      <div className="mb-8 w-full max-w-3xl" aria-label="Advertisement">
-        <AdBanner />
-      </div>
-      */}
-
-      <div className="w-full max-w-xl">
-        <Link href="/archive" className="text-blue-600 hover:underline text-sm">
-          ← Back to archive
-        </Link>
-      </div>
+    <main className="min-h-screen flex flex-col items-center bg-white px-4 pt-8">
 
       <article className="mt-6">
           <p
@@ -116,12 +103,6 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
             ))}
           </div>
         </section>
-
-        <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-          <Link href="/" className="text-blue-600 hover:underline">
-            See the latest game →
-          </Link>
-        </div>
 
         {/* Ad Slot 2: Bottom of page
         <div className="mt-12 w-full max-w-3xl" aria-label="Advertisement">

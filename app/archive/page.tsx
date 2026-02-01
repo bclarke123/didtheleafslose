@@ -27,9 +27,6 @@ export default async function ArchivePage() {
       <main className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
         <h1 className="text-2xl text-gray-600 mb-4">Game Archive</h1>
         <p className="text-gray-500">No archived games yet. Check back after the next game!</p>
-        <Link href="/" className="mt-6 text-blue-600 hover:underline">
-          ← Back to latest
-        </Link>
       </main>
     );
   }
@@ -37,12 +34,7 @@ export default async function ArchivePage() {
   return (
     <main className="min-h-screen bg-white px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Game Archive</h1>
-          <Link href="/" className="text-blue-600 hover:underline text-sm">
-            ← Latest game
-          </Link>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-8">Game Archive</h1>
 
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full">
