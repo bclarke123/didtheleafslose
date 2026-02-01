@@ -3,18 +3,8 @@
 
 import { getStore } from "@netlify/blobs";
 
-export interface StoredGame {
-  gameId: number;
-  gameDate: string;
-  opponent: string;
-  isLeafsHome: boolean;
-  didLose: boolean;
-  leafsScore: number;
-  opponentScore: number;
-  wasOT: boolean;
-  wasSO: boolean;
-  review: string;
-}
+import type { StoredGame } from "@/lib/nhl-types";
+export type { StoredGame };
 
 const STORE_NAME = "game-reviews";
 

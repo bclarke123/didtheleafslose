@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdBanner } from "./AdBanner";
-import {
-  type Game,
-  getLeafsGames,
-  getGameScoring,
-  getPeriodLabel,
-  formatAssists,
-} from "./lib/nhl";
+import type { Game } from "@/lib/nhl-types";
+import { getLeafsGames, getGameScoring } from "@/lib/nhl-api";
+import { getPeriodLabel, formatAssists } from "@/lib/helpers";
 import { getGameReview } from "./lib/storage";
 
 // Force static generation - page rebuilds are triggered by scheduled function
