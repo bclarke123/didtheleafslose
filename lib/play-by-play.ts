@@ -94,6 +94,9 @@ export function distillPlayByPlay(pbp: PlayByPlayResponse): string {
       case "penalty":
         eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: PENALTY ${team(ownerId)} ${name(d?.committedByPlayerId)} - ${d?.descKey} ${d?.duration}min${d?.drawnByPlayerId ? ` drawn by ${name(d.drawnByPlayerId)}` : ""}`);
         break;
+      case "fight":
+        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: FIGHT ${team(ownerId)} ${name(d?.committedByPlayerId)} vs ${name(d?.drawnByPlayerId)}`);
+        break;
       case "stoppage":
         if (d?.reason === "icing" || d?.reason === "offside") {
           eventLog.push(`${pLabel} ${ev.timeInPeriod}: Stoppage - ${d.reason}`);
