@@ -53,14 +53,15 @@ export function buildReviewPrompt(
           g.goalModifier === "empty-net" ? "EN" : "",
         ].filter(Boolean).join(", ");
         const modStr = modifiers ? ` [${modifiers}]` : "";
-        return `${periodLabel} ${g.timeInPeriod}: ${g.firstName.default} ${g.lastName.default} (${g.teamAbbrev.default}, ${g.shotType})${modStr} - season goal #${g.goalsToDate}. Assists: ${assists}`;
+        const goalCount = g.goalsToDate ? ` - season goal #${g.goalsToDate}` : "";
+        return `${periodLabel} ${g.timeInPeriod}: ${g.firstName.default} ${g.lastName.default} (${g.teamAbbrev.default}, ${g.shotType})${modStr}${goalCount}. Assists: ${assists}`;
       })
     )
     .join("\n");
 
   const threeStarsSummary = threeStars
     .map((s) => {
-      const name = `${s.firstName.default} ${s.lastName.default}`;
+      const name = s.name.default;
       const stats =
         s.position === "G"
           ? `${((s.savePctg ?? 0) * 100).toFixed(1)}% save pct`
@@ -76,8 +77,8 @@ export function buildReviewPrompt(
           period.periodDescriptor.periodType === "OT"
             ? "OT"
             : `P${period.periodDescriptor.number}`;
-        const drawnByStr = p.drawnBy ? ` drawn by ${p.drawnBy}` : "";
-        return `${periodLabel} ${p.timeInPeriod}: ${p.committedByPlayer} (${p.teamAbbrev.default}) - ${p.descKey} ${p.duration}min${drawnByStr}`;
+        const drawnByStr = p.drawnBy ? ` drawn by ${p.drawnBy.firstName.default} ${p.drawnBy.lastName.default}` : "";
+        return `${periodLabel} ${p.timeInPeriod}: ${p.committedByPlayer.firstName.default} ${p.committedByPlayer.lastName.default} (${p.teamAbbrev.default}) - ${p.descKey} ${p.duration}min${drawnByStr}`;
       })
     )
     .join("\n");
@@ -106,7 +107,7 @@ export function buildReviewPrompt(
 
 STRICT RULE: Never mention days of the week, "tonight", "this evening", or any time references. Just talk about the game itself. Never mention the Raptors or Blue Jays. Never use emoji, em dashes, or semicolons. Don't use the word "masterclass". Don't talk about parades.
 
-You will be given detailed game data including player stats, penalties, and a full play-by-play log from the Leafs' most recent game. Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players, moments, and stats from the data. You have a complete play-by-play log so use it to identify momentum shifts, dominant stretches, key sequences (like a flurry of shots or hits), and turning points. You have detailed player stats so use them to highlight standout performances, rough nights, and interesting details. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text. Penalties and fights should be highlighted.`;
+You will be given detailed game data including player stats, penalties, and period-by-period stats from the Leafs' most recent game. Write a 2-3 paragraph game recap. Be snarky and self-deprecating if they lost (classic Leafs fashion). If they won, be cautiously optimistic but remind everyone not to get too excited (it's the Leafs after all). Reference specific players, moments, and stats from the data. Use the period-by-period stats to identify which team dominated each period. Use player stats to highlight standout performances, rough nights, and interesting details. Keep it punchy and entertaining, avoid complete despair and keep it playful and light hearted. No headers or titles, just the recap text. Penalties and fights should be highlighted.`;
 
   const prompt = `GAME DATA:
 - Date: ${game.gameDate}
