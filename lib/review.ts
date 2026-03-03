@@ -79,7 +79,8 @@ export function buildReviewPrompt(
             ? "OT"
             : `P${period.periodDescriptor.number}`;
         const drawnByStr = p.drawnBy ? ` drawn by ${p.drawnBy.firstName.default} ${p.drawnBy.lastName.default}` : "";
-        return `${periodLabel} ${p.timeInPeriod}: ${p.committedByPlayer.firstName.default} ${p.committedByPlayer.lastName.default} (${p.teamAbbrev.default}) - ${p.descKey} ${p.duration}min${drawnByStr}`;
+        const committedBy = p.committedByPlayer ? `${p.committedByPlayer.firstName.default} ${p.committedByPlayer.lastName.default}` : "Team";
+        return `${periodLabel} ${p.timeInPeriod}: ${committedBy} (${p.teamAbbrev.default}) - ${p.descKey} ${p.duration}min${drawnByStr}`;
       })
     )
     .join("\n");

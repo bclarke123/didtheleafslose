@@ -82,7 +82,7 @@ export interface PenaltyPeriod {
     timeInPeriod: string;
     type: string;
     duration: number;
-    committedByPlayer: { firstName: { default: string }; lastName: { default: string } };
+    committedByPlayer?: { firstName: { default: string }; lastName: { default: string } };
     teamAbbrev: { default: string };
     drawnBy?: { firstName: { default: string }; lastName: { default: string } };
     descKey: string;
