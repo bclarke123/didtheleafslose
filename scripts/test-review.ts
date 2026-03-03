@@ -54,19 +54,7 @@ async function main() {
     };
   }
 
-  const { scoring, penalties, threeStars, homeTeam, awayTeam, leafsSkaters, leafsGoalies, opponentSkaters, opponentGoalies, playByPlayNarrative } = await getGameData(gameId);
-
-  const isLeafsHome = game.homeTeam.abbrev === "TOR";
-  const leafsStats = isLeafsHome && homeTeam
-    ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
-    : !isLeafsHome && awayTeam
-    ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
-    : null;
-  const opponentStats = isLeafsHome && awayTeam
-    ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
-    : !isLeafsHome && homeTeam
-    ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
-    : null;
+  const { scoring, penalties, threeStars, leafsStats, opponentStats, leafsSkaters, leafsGoalies, opponentSkaters, opponentGoalies, playByPlayNarrative } = await getGameData(gameId);
 
   console.log("Generating review...\n");
 

@@ -78,19 +78,9 @@ export default async () => {
 
   if (!existingReview) {
     // Fetch game data
-    const { scoring, penalties, threeStars, homeTeam, awayTeam, leafsSkaters, leafsGoalies, opponentSkaters, opponentGoalies, playByPlayNarrative } = await getGameData(latestGame.id);
+    const { scoring, penalties, threeStars, leafsStats, opponentStats, leafsSkaters, leafsGoalies, opponentSkaters, opponentGoalies, playByPlayNarrative } = await getGameData(latestGame.id);
 
     const isLeafsHome = latestGame.homeTeam.abbrev === "TOR";
-    const leafsStats = isLeafsHome && homeTeam
-      ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
-      : !isLeafsHome && awayTeam
-      ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
-      : null;
-    const opponentStats = isLeafsHome && awayTeam
-      ? { sog: awayTeam.sog, powerPlay: awayTeam.powerPlay, pim: awayTeam.pim }
-      : !isLeafsHome && homeTeam
-      ? { sog: homeTeam.sog, powerPlay: homeTeam.powerPlay, pim: homeTeam.pim }
-      : null;
 
     // Generate review
     const review = await generateReview(latestGame, scoring, penalties, threeStars, leafsStats, opponentStats, leafsSkaters, leafsGoalies, opponentSkaters, opponentGoalies, playByPlayNarrative);

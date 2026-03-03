@@ -68,8 +68,7 @@ export interface GameLanding {
 
 export interface ThreeStar {
   star: number;
-  firstName: { default: string };
-  lastName: { default: string };
+  name: { default: string };
   teamAbbrev: string;
   position: string;
   goals?: number;
@@ -83,9 +82,9 @@ export interface PenaltyPeriod {
     timeInPeriod: string;
     type: string;
     duration: number;
-    committedByPlayer: string;
+    committedByPlayer: { firstName: { default: string }; lastName: { default: string } };
     teamAbbrev: { default: string };
-    drawnBy: string;
+    drawnBy?: { firstName: { default: string }; lastName: { default: string } };
     descKey: string;
   }[];
 }

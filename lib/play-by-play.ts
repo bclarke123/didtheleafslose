@@ -41,13 +41,13 @@ export function distillPlayByPlay(pbp: PlayByPlayResponse): string {
 
   function ensurePeriod(label: string) {
     if (!periodAggs.has(label)) {
-      const blank = () => ({ shots: 0, hits: 0, takeaways: 0, giveaways: 0, blocks: 0, faceoffWins: 0, missedShots: 0 });
+      const blank = () => ({ shots: 0, hits: 0, takeaways: 0, giveaways: 0, blocks: 0, faceoffWins: 0 });
       periodAggs.set(label, { home: blank(), away: blank() });
     }
     return periodAggs.get(label)!;
   }
 
-  // --- Chronological event log ---
+  // --- Key events only (goals, penalties, fights) ---
   const eventLog: string[] = [];
 
   for (const ev of pbp.plays) {
@@ -62,45 +62,31 @@ export function distillPlayByPlay(pbp: PlayByPlayResponse): string {
     switch (ev.typeDescKey) {
       case "shot-on-goal":
         agg[side].shots++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: ${team(ownerId)} shot on goal by ${name(d?.shootingPlayerId)} (${d?.shotType ?? "?"}, ${zone})`);
-        break;
-      case "missed-shot":
-        agg[side].missedShots++;
         break;
       case "blocked-shot":
         agg[side].blocks++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: ${team(ownerId)} ${name(d?.blockingPlayerId)} blocked shot from ${name(d?.shootingPlayerId)} (${zone})`);
         break;
       case "hit":
         agg[side].hits++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: ${team(ownerId)} ${name(d?.hittingPlayerId)} hit ${name(d?.hitteePlayerId)} (${zone})`);
         break;
       case "takeaway":
         agg[side].takeaways++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: ${team(ownerId)} takeaway by ${name(d?.playerId)} (${zone})`);
         break;
       case "giveaway":
         agg[side].giveaways++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: ${team(ownerId)} giveaway by ${name(d?.playerId)} (${zone})`);
         break;
       case "faceoff":
         if (ownerId === homeId) agg.home.faceoffWins++;
         else agg.away.faceoffWins++;
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: Faceoff won by ${team(ownerId)} ${name(d?.winningPlayerId)} over ${name(d?.losingPlayerId)} (${zone})`);
         break;
       case "goal":
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: *** GOAL *** ${team(ownerId)} ${name(d?.scoringPlayerId)}${d?.assist1PlayerId ? ` from ${name(d.assist1PlayerId)}` : ""}${d?.assist2PlayerId ? `, ${name(d.assist2PlayerId)}` : ""} (${d?.shotType ?? "?"}, ${zone}) - ${d?.awayScore}-${d?.homeScore}`);
+        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: GOAL ${team(ownerId)} ${name(d?.scoringPlayerId)}${d?.assist1PlayerId ? ` from ${name(d.assist1PlayerId)}` : ""}${d?.assist2PlayerId ? `, ${name(d.assist2PlayerId)}` : ""} (${d?.shotType ?? "?"}, ${zone}) - ${d?.awayScore}-${d?.homeScore}`);
         break;
       case "penalty":
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: PENALTY ${team(ownerId)} ${name(d?.committedByPlayerId)} - ${d?.descKey} ${d?.duration}min${d?.drawnByPlayerId ? ` drawn by ${name(d.drawnByPlayerId)}` : ""}`);
+        eventLog.push(`${pLabel} ${ev.timeInPeriod}: PENALTY ${team(ownerId)} ${name(d?.committedByPlayerId)} - ${d?.descKey} ${d?.duration}min${d?.drawnByPlayerId ? ` drawn by ${name(d.drawnByPlayerId)}` : ""}`);
         break;
       case "fight":
-        eventLog.push(`${pLabel} ${ev.timeInPeriod} [${str}]: FIGHT ${team(ownerId)} ${name(d?.committedByPlayerId)} vs ${name(d?.drawnByPlayerId)}`);
-        break;
-      case "stoppage":
-        if (d?.reason === "icing" || d?.reason === "offside") {
-          eventLog.push(`${pLabel} ${ev.timeInPeriod}: Stoppage - ${d.reason}`);
-        }
+        eventLog.push(`${pLabel} ${ev.timeInPeriod}: FIGHT ${team(ownerId)} ${name(d?.committedByPlayerId)} vs ${name(d?.drawnByPlayerId)}`);
         break;
     }
   }
@@ -110,8 +96,8 @@ export function distillPlayByPlay(pbp: PlayByPlayResponse): string {
   const hAbbrev = pbp.homeTeam.abbrev;
   const aAbbrev = pbp.awayTeam.abbrev;
   Array.from(periodAggs.entries()).forEach(([period, { home, away }]) => {
-    aggLines.push(`${period}: ${aAbbrev} ${away.shots}SOG/${away.hits}H/${away.takeaways}TK/${away.giveaways}GV/${away.blocks}BLK/${away.faceoffWins}FOW/${away.missedShots}MISS | ${hAbbrev} ${home.shots}SOG/${home.hits}H/${home.takeaways}TK/${home.giveaways}GV/${home.blocks}BLK/${home.faceoffWins}FOW/${home.missedShots}MISS`);
+    aggLines.push(`${period}: ${aAbbrev} ${away.shots}SOG/${away.hits}H/${away.takeaways}TK/${away.giveaways}GV/${away.blocks}BLK/${away.faceoffWins}FOW | ${hAbbrev} ${home.shots}SOG/${home.hits}H/${home.takeaways}TK/${home.giveaways}GV/${home.blocks}BLK/${home.faceoffWins}FOW`);
   });
 
-  return `PERIOD-BY-PERIOD STATS:\n${aggLines.join("\n")}\n\nPLAY-BY-PLAY LOG:\n${eventLog.join("\n")}`;
+  return `PERIOD-BY-PERIOD STATS:\n${aggLines.join("\n")}\n\nKEY EVENTS:\n${eventLog.join("\n")}`;
 }
