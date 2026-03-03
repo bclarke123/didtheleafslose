@@ -47,13 +47,14 @@ export function buildReviewPrompt(
             : `P${period.periodDescriptor.number}`;
         const assists = g.assists.length === 0
           ? "unassisted"
-          : g.assists.map((a) => `${a.firstName.default} ${a.lastName.default}`).join(", ");
+          : g.assists.filter(Boolean).map((a) => `${a.firstName?.default ?? ""} ${a.lastName?.default ?? ""}`.trim() || "Unknown").join(", ");
         const modifiers = [
           g.strength !== "ev" ? g.strength.toUpperCase() : "",
           g.goalModifier === "empty-net" ? "EN" : "",
         ].filter(Boolean).join(", ");
         const modStr = modifiers ? ` [${modifiers}]` : "";
-        return `${periodLabel} ${g.timeInPeriod}: ${g.firstName.default} ${g.lastName.default} (${g.teamAbbrev.default}, ${g.shotType})${modStr} - season goal #${g.goalsToDate}. Assists: ${assists}`;
+        const scorerName = `${g.firstName?.default ?? ""} ${g.lastName?.default ?? ""}`.trim() || "Unknown";
+        return `${periodLabel} ${g.timeInPeriod}: ${scorerName} (${g.teamAbbrev.default}, ${g.shotType})${modStr} - season goal #${g.goalsToDate}. Assists: ${assists}`;
       })
     )
     .join("\n");
